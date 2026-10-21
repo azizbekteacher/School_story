@@ -14,6 +14,7 @@ G.state = (function () {
   var objectiveOverride = null;
   var started = false;
   var finished = false;
+  var chapter = "ch1";      // which chapter is live
 
   function reset() {
     flags = {};
@@ -28,6 +29,8 @@ G.state = (function () {
     objectiveOverride = null;
     started = false;
     finished = false;
+    // `chapter` deliberately survives reset: the caller chooses the chapter,
+    // and the save file needs it to know what to resume into.
   }
 
   /* ---- change notification: lets the memory layer autosave on real progress
@@ -157,6 +160,7 @@ G.state = (function () {
       choicesMade: choicesMade.slice(),
       marks: marks,
       objectiveOverride: objectiveOverride,
+      chapter: chapter,
       started: started,
       finished: finished
     };
@@ -184,6 +188,7 @@ G.state = (function () {
     else if (s.choicesMade !== undefined) bad.push("choicesMade");
     if (isObj(s.marks)) marks = s.marks; else if (s.marks !== undefined) bad.push("marks");
     if (typeof s.objectiveOverride === "string" || s.objectiveOverride === null) objectiveOverride = s.objectiveOverride;
+    if (typeof s.chapter === "string") chapter = s.chapter;
     if (typeof s.started === "boolean") started = s.started;
     if (typeof s.finished === "boolean") finished = s.finished;
     return bad;
@@ -218,6 +223,8 @@ G.state = (function () {
     get choicesMade() { return choicesMade; },
     get scores() { return scores; },
     get marks() { return marks; },
+    set chapter(v) { chapter = v; },
+    get chapter() { return chapter; },
     set started(v) { started = v; },
     get started() { return started; },
     set finished(v) { finished = v; },

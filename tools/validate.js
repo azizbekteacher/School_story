@@ -53,7 +53,11 @@ const FILES = [
   "js/data/learning.js",
   "js/data/minigames/gift.js",
   "js/data/minigames/travel.js",
-  "js/data/minigames/ball.js"
+  "js/data/minigames/ball.js",
+  "js/data/chapter2.js",
+  "js/data/chapter2-learning.js",
+  "js/data/chapters.js",
+  "js/data/minigames/chapter2.js"
 ];
 
 for (const f of FILES) {
@@ -355,6 +359,7 @@ function gidFile(id) {
   if (id === "giftShop") return "gift.js";
   if (id === "travelTalk") return "travel.js";
   if (id === "ballPlay") return "ball.js";
+  if (id === "firstNinety" || id === "registerRun") return "chapter2.js";
   return id + ".js";
 }
 

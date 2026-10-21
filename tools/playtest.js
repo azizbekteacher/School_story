@@ -14,6 +14,8 @@ const argv = process.argv.slice(2);
 const VERBOSE = argv.includes("--verbose");
 const stratArg = argv.find((a) => a.startsWith("--strategy="));
 const STRATEGY = stratArg ? stratArg.split("=")[1] : "best";
+const chArg = argv.find((a) => a.startsWith("--chapter="));
+const CHAPTER = chArg ? chArg.split("=")[1] : "ch1";
 
 const warnings = [];
 const errors = [];
@@ -103,9 +105,13 @@ const LOAD = [
   "js/game/memory.js",
   "js/data/story.js",
   "js/data/learning.js",
+  "js/data/chapter2.js",
+  "js/data/chapter2-learning.js",
+  "js/data/chapters.js",
   "js/data/minigames/gift.js",
   "js/data/minigames/travel.js",
   "js/data/minigames/ball.js",
+  "js/data/minigames/chapter2.js",
   "js/main.js"
 ];
 
@@ -206,7 +212,12 @@ const MAX_STEPS = 4000;
 
 frame(3);   // boot runs, title screen
 
-// dismiss title
+// pick the requested chapter, then dismiss the title
+if (CHAPTER !== "ch1") {
+  const idx = sandbox.window.G.chapters ? sandbox.window.G.chapters.indexOf(CHAPTER) : 0;
+  tap(String(idx + 1));
+  frame(2);
+}
 tap("Enter");
 frame(4);
 
@@ -323,7 +334,50 @@ const BEAT_PLAN = [
 
 let planIndex = 0;
 
+/* Generic walk, for any chapter without a hand-written plan. Uses the
+   chapter's own data: an NPC whose `entry` is keyed to the current beat, then
+   the zones its triggers live in, then a sweep of every zone. */
+function advanceWorldGeneric() {
+  const beat = G.state.beat;
+  const story = G.data.story || {};
+
+  // 1) an NPC whose entry scene is keyed to this beat
+  const npcs = G.debug.npcs();
+  for (const n of npcs) {
+    const e = n.entry || {};
+    if (!e[beat]) continue;
+    const key = G.debug.interact(n.id);
+    if (key === null) { errors.push("npc " + n.id + " has no entry scene for beat " + beat); continue; }
+    frame(6);
+    if (G.dialogue.isActive() || G.debrief.isVisible()) return true;
+  }
+
+  // 2) the zones this chapter's triggers live in
+  const zones = [];
+  for (const tr of (story.triggers || [])) {
+    if (tr.zone && zones.indexOf(tr.zone) < 0) zones.push(tr.zone);
+  }
+  for (const z of zones) {
+    G.debug.gotoZone(z, 0);
+    frame(6);
+    if (G.dialogue.isActive() || G.debrief.isVisible()) return true;
+  }
+
+  // 3) sweep everything, including any zone the chapter names
+  const all = ["street", "gate", "yard", "shop", "corridor", "corridor2", "staffroom", "classroom"];
+  for (const n of npcs) if (n.zone && all.indexOf(n.zone) < 0) all.push(n.zone);
+  for (const z of all) {
+    G.debug.gotoZone(z, 0);
+    frame(6);
+    if (G.dialogue.isActive() || G.debrief.isVisible()) return true;
+  }
+  return false;
+}
+
 function advanceWorld() {
+  // Chapter 1 keeps its written plan exactly as it was.
+  if (G.state.chapter && G.state.chapter !== "ch1") return advanceWorldGeneric();
+
   const beat = G.state.beat;
 
   // find the plan entry for current beat
@@ -383,7 +437,8 @@ if (G.dialogue.isActive()) {
 const summary = G.debug.summary();
 const ok = G.debrief.isVisible() || summary.finished;
 
-console.log("=== PLAYTEST (" + STRATEGY + ") ===");
+console.log("=== PLAYTEST (" + STRATEGY + ", " + (G.state.chapter || "ch1") + ") ===");
+console.log("  chapter:  " + (G.state.chapter || "ch1") + " — " + ((G.data.story || {}).title || "?"));
 console.log("  scenes visited: " + sceneOrder.length);
 console.log("  " + sceneOrder.join(" → "));
 console.log("  dialogue nodes: " + stats.nodes);

@@ -588,7 +588,7 @@
       var forgiving = !!cfg.forgiving;
       var total = typeof cfg.seconds === "number" ? cfg.seconds : 70;
 
-      var named = [], seen = [], asked = [];
+      var named = [], seen = [];
       var names = 0, details = 0, wrong = 0;
       var trust = forgiving ? 4 : 3;
       var maxTrust = forgiving ? 4 : 3;
@@ -623,12 +623,6 @@
       function bump(text, kind) { msg = text; msgT = 2.2; lastKind = kind || ""; }
       var lastKind = "";
 
-      function remainingNames() {
-        var out = [];
-        for (var i = 0; i < PUPILS.length; i++) if (!named[i]) out.push(PUPILS[i].name);
-        return out;
-      }
-
       function openPupil(i) {
         if (finished || phase !== "browse") return;
         if (named[i]) { bump(PUPILS[i].name + " — allaqachon bilaman", ""); sfx(api, "blip", 520); return; }
@@ -659,7 +653,6 @@
         var i = pendingPupil;
         var guess = cand[idx];
         clock -= 3;
-        asked[i] = true;
         if (guess === PUPILS[i].name) {
           named[i] = true; names++;
           sfx(api, "good");
@@ -826,10 +819,7 @@
           return { phase: phase, names: names, details: details, wrong: wrong, trust: trust, clock: clock };
         },
         debugName: function (i) { sel = i; openPupil(i); return cand.slice(); },
-        debugPick: function (i) { if (phase === "name") chooseName(i); else if (phase === "detail") chooseDetail(i); },
-
-        /* no-op helpers referenced above keep the closure honest */
-        _noop: function () { return null; }
+        debugPick: function (i) { if (phase === "name") chooseName(i); else if (phase === "detail") chooseDetail(i); }
       };
 
       /* ---------------------------------------------------------- drawing */

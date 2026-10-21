@@ -94,7 +94,7 @@ git status               # what has changed since the last commit
 | Chapter | Title | Subject | Status |
 |---|---|---|---|
 | 1 | Birinchi kun | A whole first day: arriving, the staffroom, a mother at the gate, a gift, a walk home | **Done, verified** |
-| 2 | — | One lesson, start to finish — giving fourteen strangers a great first impression | In progress |
+| 2 | Birinchi dars: 5-B | One lesson, start to finish — 45 minutes, fourteen strangers, and the first impression they take away | **Done, verified** |
 
 Each chapter is a self-contained mission with its own beats, characters and
 teaching content. The engine is the same; only the data changes.

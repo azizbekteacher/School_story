@@ -6,6 +6,8 @@ window.G = window.G || {};
   var canvas, ctx;
   var lastTime = 0;
   var state = "title";        // title | play | debrief
+  var titleChapter = 0;       // which chapter is highlighted on the title
+  var titleResume = null;     // the save offered as "continue", if any
   var titleT = 0;
   var bootT = 0;
   var fadeAlpha = 1;
@@ -16,6 +18,9 @@ window.G = window.G || {};
 
   function boot() {
     G.memory.install();
+    // open the title on whichever chapter the save belongs to
+    var bootSave = G.memory.load();
+    if (bootSave && bootSave.chapter) titleChapter = G.chapters.indexOf(bootSave.chapter);
     canvas = document.getElementById("game");
     ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
@@ -48,8 +53,23 @@ window.G = window.G || {};
   /* Start a chapter. `resume` is a save object from G.memory, or null for a
      fresh run. Resuming restores state and drops the player where they stood;
      scenes are re-enterable, so an interrupted scene simply replays. */
-  function startGame(resume) {
+  function startGame(resume, chapterId) {
+    // Which chapter: an explicit request wins, then the save, then chapter 1.
+    var wantId = chapterId || (resume && resume.chapter) || "ch1";
+    var ch = G.chapters ? G.chapters.activate(wantId) : null;
+    if (!ch) {
+      // no registry loaded: fall back to the single-story behaviour
+      ch = { id: "ch1", firstBeat: "arrive", startZone: "street", startAnchor: 0,
+             title: (G.data.story || {}).title || "" };
+      if (G.data.story) { /* story is already G.data.story */ }
+    }
+
     G.state.reset();
+    G.state.chapter = ch.id;
+    // reset() parks the beat at chapter 1's opening; move it to this chapter's
+    // first beat so objectives, NPC routing and triggers are correct at once.
+    G.state.setBeat(ch.firstBeat);
+
     G.quest.reset();
     G.world.init();
     G.state.started = true;
@@ -58,14 +78,24 @@ window.G = window.G || {};
     var story = G.data.story;
     if (story && story.npcs) G.world.setNpcs(story.npcs);
 
+    // Chapters after the first spawn at their own anchor. Chapter 1 keeps
+    // world.init()'s original spawn and camera, exactly as it always was.
+    if (ch.id !== "ch1") {
+      var spawn = G.map.anchor(ch.startZone, ch.startAnchor);
+      G.world.setPlayerPos(spawn.x, spawn.y);
+      G.world.cam.x = spawn.x - W / 2;
+      G.world.cam.y = spawn.y - H / 2;
+    }
+
     state = "play";
     G.dialogueActive = false;
 
     if (resume) {
       var rep = G.memory.apply(resume);
       if (rep.ok) {
-        // put the camera on the restored position before the first frame
+        // restore the saved position over the chapter spawn, and follow it
         if (G.world.cam && resume.position) {
+          G.world.setPlayerPos(resume.position.x, resume.position.y);
           G.world.cam.x = resume.position.x - W / 2;
           G.world.cam.y = resume.position.y - H / 2;
         }
@@ -120,17 +150,47 @@ window.G = window.G || {};
     if (state === "title") {
       titleT += dt;
       var saved = G.memory.load();
+      var chs = G.chapters.list();
+
+      // choose a chapter: left/right arrows, or the number keys
+      var moved = 0;
+      if (G.input.wasPressed("arrowleft")) { G.input.consume("arrowleft"); moved = -1; }
+      if (G.input.wasPressed("arrowright")) { G.input.consume("arrowright"); moved = 1; }
+      if (moved) { titleChapter = (titleChapter + moved + chs.length) % chs.length; G.audio.tick(); }
+      for (var ci = 0; ci < chs.length && ci < 9; ci++) {
+        if (G.input.wasPressed(String(ci + 1))) {
+          G.input.consume(String(ci + 1));
+          titleChapter = ci; G.audio.select();
+        }
+      }
+
+      var sel = chs[titleChapter] || chs[0];
+      // a save only counts as "continue" when it belongs to this chapter
+      var resumable = (saved && sel && saved.chapter === sel.id) ? saved : null;
+      titleResume = resumable;
+
+      if (sel && sel.status !== "ready") {
+        // chapter data missing: refuse rather than start a broken mission
+        if (G.input.wasPressed("enter") || G.input.wasPressed("space")) {
+          G.input.consume("enter"); G.input.consume("space");
+          G.audio.bad();
+        }
+        return;
+      }
+
       if (G.input.wasPressed("enter") || G.input.wasPressed("space")) {
         G.input.consume("enter"); G.input.consume("space");
         G.audio.select();
-        pendingState = function () { startGame(saved); };
+        pendingState = function () { var r = titleResume; startGame(r, sel.id); };
         fadeDir = 1;
       }
-      if (saved && G.input.wasPressed("n")) {
+      // N — start the selected chapter over, discarding its save
+      if (resumable && G.input.wasPressed("n")) {
         G.input.consume("n");
         G.memory.clear();
+        titleResume = null;
         G.audio.bad();
-        pendingState = function () { startGame(null); };
+        pendingState = function () { startGame(null, sel.id); };
         fadeDir = 1;
       }
       return;
@@ -241,107 +301,145 @@ window.G = window.G || {};
 
   function drawTitle() {
     var t = titleT;
+    var chs = G.chapters.list();
+    var sel = chs[titleChapter] || chs[0];
+    var sv = G.memory.load();
 
-    // backdrop: slow drifting bokeh over brick
+    // daylight backdrop — warm, not the old dusk
     var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#1b1512");
-    g.addColorStop(0.5, "#241a15");
-    g.addColorStop(1, "#120e0c");
+    g.addColorStop(0, "#8d8271");
+    g.addColorStop(0.45, "#6f6453");
+    g.addColorStop(1, "#52483c");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // warm glow
-    var rg = ctx.createRadialGradient(W * 0.5, H * 0.38, 20, W * 0.5, H * 0.38, 420);
-    rg.addColorStop(0, "rgba(217,164,76,.16)");
-    rg.addColorStop(1, "rgba(217,164,76,0)");
+    // low sun
+    var rg = ctx.createRadialGradient(W * 0.5, H * 0.28, 20, W * 0.5, H * 0.28, 470);
+    rg.addColorStop(0, "rgba(255,230,176,.24)");
+    rg.addColorStop(1, "rgba(255,230,176,0)");
     ctx.fillStyle = rg;
     ctx.fillRect(0, 0, W, H);
 
-    // drifting dust motes
+    // drifting dust
     for (var i = 0; i < 46; i++) {
       var seed = G.util.hash(i * 13.7);
       var x = ((seed * W + t * (8 + seed * 16)) % (W + 60)) - 30;
       var y = (G.util.hash(i * 7.3) * H + Math.sin(t * 0.5 + i) * 20 + t * 4) % H;
-      var a = 0.05 + 0.10 * G.util.hash(i * 3.1);
-      ctx.fillStyle = "rgba(240,220,180," + a + ")";
+      var al = 0.07 + 0.13 * G.util.hash(i * 3.1);
+      ctx.fillStyle = "rgba(255,246,214," + al + ")";
       ctx.beginPath();
       ctx.arc(x, y, 1 + seed * 1.6, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // a small school silhouette
     drawSchoolSilhouette(t);
 
-    // title text
     ctx.save();
     ctx.textAlign = "center";
 
-    var ty = 214;
     ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(217,164,76,.8)";
-    ctx.fillText("UNREASONABLE HOSPITALITY · O'YIN", W / 2, ty - 46);
+    ctx.fillStyle = "rgba(255,240,210,.74)";
+    ctx.fillText("UNREASONABLE HOSPITALITY · O'YIN", W / 2, 90);
 
-    ctx.font = "bold 52px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(0,0,0,.5)";
-    ctx.fillText("Birinchi kun", W / 2 + 2, ty + 2);
-    var tg = ctx.createLinearGradient(0, ty - 40, 0, ty + 10);
-    tg.addColorStop(0, "#f7e9c8");
-    tg.addColorStop(1, "#d9a44c");
+    // the selected chapter, named large
+    var ty = 152;
+    ctx.font = "bold 46px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "rgba(30,24,18,.30)";
+    ctx.fillText(sel.title, W / 2 + 2, ty + 3);
+    var tg = ctx.createLinearGradient(0, ty - 38, 0, ty + 10);
+    tg.addColorStop(0, "#fff8e6");
+    tg.addColorStop(1, "#e6bd70");
     ctx.fillStyle = tg;
-    ctx.fillText("Birinchi kun", W / 2, ty);
+    ctx.fillText(sel.title, W / 2, ty);
 
-    ctx.font = "16px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(244,236,224,.62)";
-    ctx.fillText("Sulton School — matematika o'qituvchisining birinchi kuni", W / 2, ty + 36);
+    ctx.font = "17px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "rgba(255,248,236,.86)";
+    ctx.fillText(sel.subtitle, W / 2, ty + 32);
+    ctx.restore();
 
-    ctx.font = "italic 14px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(200,190,175,.45)";
-    ctx.fillText("Timur ismli bola bilan bir kunda nima qila olasiz?", W / 2, ty + 62);
+    // chapter picker — one card each
+    var pillW = 268, pillH = 52, gap = 18;
+    var totalW = chs.length * pillW + (chs.length - 1) * gap;
+    var px0 = (W - totalW) / 2;
+    for (var ci = 0; ci < chs.length; ci++) {
+      var ch = chs[ci];
+      var on = (ci === titleChapter);
+      var cx = px0 + ci * (pillW + gap);
+      G.render.panel(ctx, cx, 232, pillW, pillH, {
+        fill: on ? "rgba(140,110,60,.94)" : "rgba(84,74,60,.78)",
+        stroke: on ? "rgba(255,222,152,.95)" : "rgba(255,240,208,.26)",
+        radius: 9
+      });
+      ctx.save();
+      ctx.textAlign = "left";
+      ctx.font = "bold 14px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = on ? "#fff6e2" : "rgba(255,248,236,.72)";
+      ctx.fillText(ch.num + "  " + ch.title, cx + 16, 256);
 
-    // start prompt
-    var pulse = 0.6 + 0.4 * Math.sin(t * 2.4);
-    ctx.globalAlpha = pulse;
-    ctx.font = "bold 16px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "#f2dfae";
-    var saveInfo = G.memory.load();
-    if (saveInfo) {
-      ctx.fillText("ENTER — davom etish", W / 2, H - 108);
-      ctx.globalAlpha = 1;
-      ctx.font = "12px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillStyle = "rgba(242,223,174,.75)";
-      var when = String(saveInfo.savedAt || "").replace("T", " ").slice(0, 16);
-      ctx.fillText("Saqlangan: " + when + "  ·  " + (saveInfo.beat || "") +
-                   "  ·  ishonch " + saveInfo.trust + "/10", W / 2, H - 88);
+      var theirs = (sv && sv.chapter === ch.id) ? sv : null;
+      var status;
+      if (ch.status !== "ready") status = "mavjud emas";
+      else if (theirs) status = "saqlangan · ishonch " + theirs.trust + "/10";
+      else status = "hali o'ynalmagan";
       ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillStyle = "rgba(244,236,224,.42)";
-      ctx.fillText("N — boshidan boshlash", W / 2, H - 70);
+      ctx.fillStyle = on ? "rgba(255,240,212,.88)" : "rgba(255,248,236,.46)";
+      ctx.fillText(status, cx + 16, 273);
+      ctx.restore();
+    }
+
+    // the call to action for the selected chapter
+    var resumable = (sv && sel && sv.chapter === sel.id) ? sv : null;
+    var pulse = 0.62 + 0.38 * Math.sin(t * 2.4);
+    ctx.save();
+    ctx.textAlign = "center";
+
+    if (sel && sel.status !== "ready") {
+      ctx.font = "bold 16px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "#f0c9a0";
+      ctx.fillText("Bu bobning ma'lumotlari topilmadi", W / 2, 340);
     } else {
-      ctx.fillText("ENTER — boshlash", W / 2, H - 108);
+      ctx.globalAlpha = pulse;
+      ctx.font = "bold 17px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "#fff1cd";
+      ctx.fillText(resumable ? "ENTER — davom etish" : "ENTER — boshlash", W / 2, 340);
       ctx.globalAlpha = 1;
+
+      ctx.font = "12px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,246,226,.72)";
+      if (resumable) {
+        var when = String(resumable.savedAt || "").replace("T", " ").slice(0, 16);
+        ctx.fillText("Saqlangan: " + when + "  ·  " + (resumable.beat || "") +
+                     "  ·  ishonch " + resumable.trust + "/10", W / 2, 362);
+        ctx.fillStyle = "rgba(255,246,226,.44)";
+        ctx.fillText("N — bu bobni boshidan boshlash", W / 2, 380);
+      } else {
+        ctx.fillText("← → yoki 1-2 — bob tanlash    ·    TAB — daftar    ·    M — saqlash", W / 2, 362);
+      }
     }
 
     ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(244,236,224,.38)";
-    ctx.fillText("WASD / strelkalar — yurish    E — gaplash    TAB — daftar    M — saqlash", W / 2, H - 76);
-    ctx.fillText("Bu o'yin qilgan tanlovlaringizni o'qituvchilik uslubingizga bog'laydi", W / 2, H - 54);
-
+    ctx.fillStyle = "rgba(255,248,236,.46)";
+    ctx.fillText("WASD / strelkalar — yurish    E — gaplash    F — memory.md yozish uchun papkani tanlash", W / 2, 408);
     ctx.restore();
 
-    // mission brief card bottom-left
-    if (G.data && G.data.story && G.data.story.brief) {
-      var brief = G.data.story.brief;
-      var bh = 26 + brief.length * 18;
-      G.render.panel(ctx, 40, H - bh - 40, 400, bh, {
-        fill: "rgba(66,56,45,.78)", stroke: "rgba(232,196,128,.3)", radius: 8
+    // today's mission brief, for whichever chapter is selected
+    if (sel && sel.brief && sel.brief.length) {
+      var brief = sel.brief;
+      var bh = 30 + brief.length * 17;
+      var by = H - bh - 26;
+      G.render.panel(ctx, 40, by, 470, bh, {
+        fill: "rgba(78,68,56,.72)", stroke: "rgba(255,220,150,.34)", radius: 8
       });
       ctx.save();
       ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillStyle = "rgba(217,164,76,.7)";
-      ctx.fillText("BUGUNGI VAZIFA", 56, H - bh - 22);
+      ctx.fillStyle = "rgba(255,222,152,.86)";
+      ctx.fillText("BUGUNGI VAZIFA", 56, by + 18);
       ctx.font = "12px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillStyle = "rgba(240,230,216,.75)";
-      for (var b = 0; b < brief.length; b++) {
-        ctx.fillText("• " + brief[b], 56, H - bh - 6 + b * 18);
+      ctx.fillStyle = "rgba(255,246,232,.84)";
+      for (var b = 0; b < brief.length && b < 6; b++) {
+        var line = String(brief[b]);
+        if (line.length > 62) line = line.slice(0, 59) + "…";
+        ctx.fillText("• " + line, 56, by + 36 + b * 17);
       }
       ctx.restore();
     }
