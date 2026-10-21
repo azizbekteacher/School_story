@@ -1,0 +1,17 @@
+# Chrome / DevTools artefacts from the screenshot + test harnesses
+tools/shots/*.png
+.chrome-profile/
+.chrome-*/
+
+# Logs and scratch
+*.log
+tools/*.tmp.js
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# No secrets, no tokens, no credentials belong in this repo.
+.env
+*.key

@@ -1,0 +1,83 @@
+/* Sulton School — Birinchi kun
+   A quiet, warm palette: Bukhara brick, dust, evening light. */
+
+:root {
+  --bg: #2b2620;
+  --ink: #f4ece0;
+  --ink-dim: #cbbba6;
+  --gold: #e0b062;
+  --brick: #8c4a32;
+  --teal: #4a8c86;
+  --good: #7fb86b;
+  --warn: #d9a44c;
+  --bad: #c4553f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 40%, #4a4038 0%, #2b2620 70%);
+}
+
+#stage {
+  position: relative;
+  width: min(100vw, 160vh);
+  height: min(100vh, 62.5vw);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(232, 196, 128, .18);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+canvas#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  background: #6b6152;
+  cursor: default;
+  touch-action: none;
+}
+
+#rotate-hint {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 16, 14, .96);
+  color: var(--ink-dim);
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  letter-spacing: .04em;
+  z-index: 50;
+}
+
+@media (max-aspect-ratio: 3/4) {
+  #rotate-hint { display: flex; }
+}
+
+/* The canvas does all in-game UI. Below is only for the CRT-ish vignette. */
+#stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.42) 100%);
+  z-index: 10;
+}
