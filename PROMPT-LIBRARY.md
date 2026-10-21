@@ -197,3 +197,31 @@ These hold across every prompt above and are not renegotiated per task.
 6. **Depth over breadth.** One principle taught properly beats five mentioned.
 7. **Uzbek for the game, mixed English/Uzbek for the teaching content.** Match
    the existing register: warm, plain, adult, no exclamation-mark cheerfulness.
+
+---
+
+## 2026-10-22T04:29:12+05:00
+
+> chapter 1 was working fine - now it is not showing the hero, the camera stuck
+> on top left corner.
+> Just revert that to previous state. Chpater 1 doesn't need editing
+> Be faster
+
+**What it establishes:** Three things, all binding.
+
+- **Chapter 1 is finished and must not be disturbed.** When new work breaks it,
+  the fix is to revert, not to re-engineer chapter 1. Existing, working content
+  is a fixed point, not a draft.
+- **Report regressions in player terms** — "the hero is not showing", "the
+  camera is stuck" — and expect them to be believed immediately over the code's
+  apparent correctness. The logic looked right; the *spawn override* was the
+  cause, and it only ever needed to apply to new chapters.
+- **"Be faster."** Prefer the direct fix over exhaustive diagnosis when the
+  regression is already described. Verify with the narrowest test that proves
+  the reported symptom is gone (here: is the hero inside the viewport?), then run
+  the full suite once.
+
+**Produced:** Guarded the chapter spawn override so it no longer touches
+chapter 1; `tools/probe-hero.js`, which asserts the hero's *screen* position is
+inside the 960x600 viewport (chapter 1: 336,302; chapter 2: 480,301 —
+centred). Full suite re-run green, chapter 2 committed.
