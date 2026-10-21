@@ -26,7 +26,8 @@ const sb = {
 };
 const ctx = vm.createContext(sb);
 vm.runInContext("globalThis.window=globalThis; var __L={}; globalThis.addEventListener=function(n,f){(__L[n]=__L[n]||[]).push(f);}; globalThis.removeEventListener=function(){}; globalThis.__fire=function(n,e){(__L[n]||[]).slice().forEach(function(f){try{f(e);}catch(x){}});};", ctx);
-["js/core/util.js","js/core/input.js","js/core/audio.js","js/core/render.js","js/world/map.js","js/world/world.js","js/game/state.js","js/game/minigames.js","js/game/dialogue.js","js/game/notebook.js","js/game/quest.js","js/game/debrief.js","js/game/debug.js","js/data/story.js","js/data/learning.js","js/data/minigames/gift.js","js/data/minigames/travel.js","js/data/minigames/ball.js","js/main.js"]
+["js/core/util.js","js/core/input.js","js/core/audio.js","js/core/render.js","js/world/map.js","js/world/world.js","js/game/state.js","js/game/minigames.js","js/game/dialogue.js","js/game/notebook.js","js/game/quest.js","js/game/debrief.js","js/game/debug.js",
+  "js/game/memory.js","js/data/story.js","js/data/learning.js","js/data/minigames/gift.js","js/data/minigames/travel.js","js/data/minigames/ball.js","js/main.js"]
   .forEach(f => { try { vm.runInContext(fs.readFileSync(path.join(root, f), "utf8"), ctx, { filename: f }); } catch (e) { console.log("LOAD " + f + " " + e.message); } });
 const G = sb.window.G;
 

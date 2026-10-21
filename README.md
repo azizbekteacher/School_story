@@ -24,8 +24,80 @@ No server, no build step, no npm, no network. It runs from `file://` in any mode
 | `Space` | strike the ball / continue |
 | `TAB` | notebook (what you learned, what you chose, principles met) |
 | `Esc` | close notebook |
+| `M` | save now |
+| `F` | let the game write `memory.md` by itself (pick the folder once) |
 
 The debrief at the end has four tabs: `Natija` (result), `Tanlovlar` (your choices), `G'oyalar` (things you could do Monday), `Qiyinchiliklar` (why they are hard).
+
+---
+
+## Saving and resuming
+
+The game remembers where you are. It keeps three copies, because a browser
+opened straight from `file://` cannot read a file the way a server can:
+
+| Layer | What it is | When it updates |
+|---|---|---|
+| `localStorage` | instant and silent, scoped to this browser | on every beat, choice and note |
+| `memory.js` | the same save as a plain script | whenever it saves |
+| `memory.md` | the readable save — the one you and future models look at | once you grant the folder |
+
+Open `index.html` again and the title screen offers **Davom etish** (Continue)
+when a save exists, or **Boshlash** (Start) when it does not. **N** always starts
+over.
+
+`memory.js` is the twin of `memory.md` and exists for one reason: a classic
+`<script>` tag is not restricted when you double-click a page, but `fetch()` is.
+So the markdown stays the honest, human-readable record, and the `.js` file is
+what the browser can actually read back at boot. When the page *is* served over
+HTTP, the game reads `memory.md` directly and treats it as authoritative.
+
+**To make `memory.md` genuinely live:** press `F` once and pick the folder
+holding `index.html`. Chrome remembers that grant, and from then on the game
+rewrites `memory.md` in place as you play — your current position, beat, trust,
+everything you learned, and every choice you made. Without it, `M` saves to the
+browser and Continue still works.
+
+The save format is versioned (`v: 1`) and every field is validated on load; a
+hand-edited or older file can never corrupt live state — bad fields are rejected
+and logged.
+
+Resuming drops you back in the world at your saved coordinates with your saved
+progress. If you were mid-conversation, that conversation simply replays — which
+is deliberate, because it means an interrupted scene can never soft-lock you.
+
+---
+
+## Two ways to play
+
+Chapter 1 is finished and verified. Chapter 2 is being built on top of it, and
+the working folder will change while that happens. So the last verified version
+lives in its own folder:
+
+**Double-click `play-stable.bat`.** On first run it creates `_stable-play/`, an
+independent git worktree of the tag `stable-ch1`, and opens the game from there.
+That copy is untouched by anything that happens in the main folder — so you can
+always go back and play a version that works.
+
+To move to a newer stable version later, delete `_stable-play/` and run it again.
+
+```
+git log --oneline        # history
+git tag -l               # stable tags
+git status               # what has changed since the last commit
+```
+
+---
+
+## Chapters
+
+| Chapter | Title | Subject | Status |
+|---|---|---|---|
+| 1 | Birinchi kun | A whole first day: arriving, the staffroom, a mother at the gate, a gift, a walk home | **Done, verified** |
+| 2 | — | One lesson, start to finish — giving fourteen strangers a great first impression | In progress |
+
+Each chapter is a self-contained mission with its own beats, characters and
+teaching content. The engine is the same; only the data changes.
 
 ---
 
@@ -122,13 +194,23 @@ js/game/dialogue.js         scene interpreter, effects, gating, typewriter
 js/game/notebook.js         TAB overlay — intel / journal / principles
 js/game/quest.js            HUD, minimap, zone triggers, interaction
 js/game/debrief.js          the teaching payoff, four tabs
+js/game/memory.js           save/resume: memory.md, memory.js, localStorage
 js/game/debug.js            test bridge (harmless in play, used by tools/)
-js/data/story.js            the mission script — scenes, nodes, effects, NPCs
+js/data/story.js            Chapter 1 — scenes, nodes, effects, NPCs
 js/data/learning.js         6 principles, 44 choice notes, 5 archetypes,
                             10 ideas, 8 difficulties
 js/data/minigames/*.js      gift.js, travel.js, ball.js
+memory.md                   the live save, readable, with a JSON block
+memory.js                   the same save as a script the browser can load
+PROMPT-LIBRARY.md           the prompts that set direction, newest first
+SPEC.md                     the binding contract
+play-stable.bat             play the last verified version in its own folder
 tools/                      validators, headless playtests, screenshot + text audits
 ```
+
+`PROMPT-LIBRARY.md` is worth reading before making design decisions. It records
+not just what was asked but what each request revealed about the intent, plus the
+standing constraints that hold across every task.
 
 ### Data-driven by design
 
@@ -161,6 +243,10 @@ node tools/playtest.js --strategy=random
 node tools/audit-text.js                # real canvas metrics: text overflow
 node tools/shots.js                     # headless screenshots → tools/shots/
 node tools/verify-file-protocol.js      # boots and completes from file://
+node tools/test-memory.js               # save → reload → resume round-trip
+node tools/analyze-facing.js            # hero sprite points the way it walks
+node tools/color-inventory.js           # palette audit, luminance histogram
+node tools/show-contract.js             # the exact story/learning data contract
 ```
 
 Current state:
@@ -171,8 +257,10 @@ Current state:
 | best / worst / random playthroughs | all reach `done` → debrief, 0 exceptions |
 | trust spread across paths | 8 (best) / 1 (random) / 0 (worst) |
 | `audit-text.js` | PASSED — 0 overflow across 10 surfaces, 0 runtime errors |
-| screenshots | 13 frames, all distinct, warm palette |
+| screenshots | 12 frames, all distinct |
 | `file://` double-click | PASSED — boots and completes the mission |
+| `test-memory.js` | PASSED — position, trust and intel survive a reload |
+| `analyze-facing.js` | PASSED — nose points the way the hero walks |
 
 **Content coverage:** 10 scenes, 119 nodes, 21 story choice ids, all 21 documented (0 missing, 0 orphaned), 44 choice notes total, 3 minigames, 10 beats, 30 concrete "how" steps across 10 ideas, 8 difficulties, 5 archetypes.
 

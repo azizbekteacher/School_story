@@ -311,7 +311,9 @@ G.memory = (function () {
     //    fenced JSON block is the same save, so the markdown is authoritative
     //    wherever the browser is allowed to read it.
     if (mdCache) return mdCache;
-    if (location.protocol === "http:" || location.protocol === "https:") {
+    // `location` is absent in the headless test sandbox, so never reference it bare
+    var proto = (typeof location !== "undefined" && location && location.protocol) || "";
+    if (proto === "http:" || proto === "https:") {
       try {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "memory.md", false);   // sync: load() is called during boot

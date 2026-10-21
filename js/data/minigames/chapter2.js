@@ -155,8 +155,7 @@
     title: "Birinchi to'qson soniya",
     subtitle: "Uchta harakat. Birinchisi qolgan ikkitasining narxini belgilaydi.",
     controls: "1-6 karta tanlash · ENTER joylash · ESC bekor qilish · sichqoncha bilan ham bo'ladi",
-    principleIds: ["C2-001"],
-
+    principles: ["C2-001"],
     create: function (api) {
       var MOVES = [
         { id: "self", title: "O'zingizni tanishtirish",
@@ -417,7 +416,7 @@
       }
 
       function drawMeters(ctx, warm, order, tw, to) {
-        var x = 700, w = 132;
+        var x = 686, w = 128;
         // warmth
         txt(ctx, "ISSIQLIK", x, 26, "bold 10px " + SANS, WARM);
         rrect(ctx, x, 34, w, 9, 4.5); ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fill();
@@ -582,7 +581,7 @@
     title: "Jurnal: o'n to'rt ism",
     subtitle: "Ism aytish vaqt oladi. Bitta haqiqiy narsani ko'rish undan ham ko'p vaqt oladi.",
     controls: " strelkalar — parta tanlash · ENTER — ism aytish · 1-5 — ism · 1-3 — batafsil · SPACE — darsni boshlash",
-    principleIds: ["C2-003"],
+    principles: ["C2-003"],
 
     create: function (api) {
       var cfg = api.cfg || {};
@@ -818,9 +817,9 @@
 
         draw: function (ctx) {
           drawTopBar(ctx, clock, total, names, details, trust, maxTrust);
+          if (phase === "summary") { drawSummary(ctx); return; }
           drawGrid(ctx);
           drawPanel(ctx);
-          if (phase === "summary") drawSummary(ctx);
         },
 
         debugState: function () {
@@ -843,14 +842,14 @@
         txt(ctx, "jurnal ochiq", 62, 14, "10px " + SANS, MUTED);
         txt(ctx, "ismlar " + n + "/14", 300, 14, "bold 11px " + SANS, n >= 5 ? GREEN : CREAM);
         txt(ctx, "ko'rilgan " + det, 420, 14, "11px " + SANS, det >= 2 ? GREEN : MUTED);
-        txt(ctx, "ishonch", 640, 14, "10px " + SANS, MUTED);
+        txt(ctx, "ishonch", 590, 14, "10px " + SANS, MUTED);
         for (var i = 0; i < mtr; i++) {
           ctx.beginPath();
-          ctx.arc(690 + i * 16, 14, 5, 0, Math.PI * 2);
+          ctx.arc(642 + i * 15, 14, 5, 0, Math.PI * 2);
           ctx.fillStyle = i < tr ? (tr >= mtr ? GREEN : GOLD) : "rgba(246,239,227,.16)";
           ctx.fill();
         }
-        txt(ctx, "SPACE — darsni boshlash", 786, 14, "9.5px " + SANS, DIM, "right");
+        txt(ctx, "SPACE — boshlash", 846, 14, "9.5px " + SANS, DIM, "right");
       }
 
       function drawGrid(ctx) {
@@ -928,8 +927,8 @@
 
       function drawSummary(ctx) {
         ctx.save();
-        ctx.fillStyle = "rgba(12,10,8,.86)";
-        rrect(ctx, 0, 28, W, 382, 0); ctx.fill();
+        ctx.fillStyle = "rgba(18,15,12,.97)";
+        rrect(ctx, 0, 28, W, 390, 0); ctx.fill();
 
         var w = win();
         txt(ctx, w ? "Jurnal yopildi — siz bir necha bolani ko'rdingiz" : "Jurnal yopildi — ko'pchilikni ko'rmadingiz",

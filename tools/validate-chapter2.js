@@ -249,7 +249,29 @@ if (CH && CH.scenes) {
     if (orphans.length) {
       err(`scene ${sk}: ${orphans.length} orphaned node(s) not reachable from start: ${orphans.slice(0, 8).join(", ")}`);
     }
+    // a scene the player can enter must have a way out: a terminal node
+    const hasExit = Object.keys(nodes).some(k => {
+      const n = nodes[k] || {};
+      const effects = n.effects || [];
+      return n.next === null || n.type === "end" || effects.some(e => e && e.endMission);
+    });
+    if (!hasExit) err(`scene ${sk}: no terminal node (every path loops inside the scene)`);
   }
+}
+
+// exactly one node may end the mission, and it must be a beat the HUD knows
+if (CH && CH.scenes) {
+  const ends = [];
+  for (const sk of Object.keys(CH.scenes)) {
+    const nodes = CH.scenes[sk].nodes || {};
+    for (const nk of Object.keys(nodes)) {
+      const n = nodes[nk] || {};
+      if ((n.effects || []).some(e => e && e.endMission)) ends.push(sk + "/" + nk);
+    }
+  }
+  if (ends.length === 0) err("no node sets { endMission: true } — the chapter cannot finish");
+  if (ends.length > 1) err(`more than one node ends the mission: ${ends.join(", ")}`);
+  else info.push(`mission ends at: ${ends[0]}`);
 }
 
 // ---------------------------------------------------------------------------

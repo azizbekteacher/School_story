@@ -100,6 +100,7 @@ const LOAD = [
   "js/game/quest.js",
   "js/game/debrief.js",
   "js/game/debug.js",
+  "js/game/memory.js",
   "js/data/story.js",
   "js/data/learning.js",
   "js/data/minigames/gift.js",
