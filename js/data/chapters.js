@@ -41,13 +41,27 @@ G.chapters = (function () {
   }
 
   var CHAPTERS = [];
+
+  /* Chapter 1 is the original single-story game. Its spawn is world.init()'s own
+     spawn, so startZone is only a label here; main.js deliberately leaves
+     chapter 1's spawn and camera alone. */
   var c1 = make("ch1", 1, CH1_STORY, CH1_LEARNING, "street", 0, "ready");
   if (c1) CHAPTERS.push(c1);
+
   var c2 = make("ch2", 2, G.data.chapter2, G.data.chapter2Learning,
     (G.data.chapter2 && G.data.chapter2.startZone) || "corridor",
     (G.data.chapter2 && G.data.chapter2.startAnchor) || 0,
     G.data.chapter2 ? "ready" : "missing");
   if (c2) CHAPTERS.push(c2);
+
+  /* Every chapter is playable from the start: no unlock flags, no prerequisites,
+     no carry-over state from another chapter. A new chapter is added by defining
+     its data and adding one make(...) call above — nothing else. This helper
+     exists so a future chapter cannot accidentally introduce a lock. */
+  function playableFromStart(id) {
+    var ch = get(id);
+    return !!(ch && ch.status === "ready" && ch.story && ch.story.scenes);
+  }
 
   function list() { return CHAPTERS.slice(); }
 
@@ -94,6 +108,7 @@ G.chapters = (function () {
     activate: activate,
     current: current,
     firstBeatOf: firstBeatOf,
+    playableFromStart: playableFromStart,
     count: function () { return CHAPTERS.length; }
   };
 })();

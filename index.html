@@ -2,14 +2,33 @@
 <html lang="uz">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#6b6152">
+<meta name="description" content="Sulton School — o'qituvchilik haqidagi 2D sarguzasht o'yin. Service is black and white. Hospitality is colour.">
 <title>Sulton School — Birinchi kun</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/menu.css">
+<link rel="stylesheet" href="css/hud.css">
 </head>
 <body>
   <div id="stage">
     <canvas id="game" width="960" height="600"></canvas>
     <div id="rotate-hint">Telefonni yonboshga buring</div>
+
+    <!-- Touch controls. Hidden unless the device has a coarse pointer; they feed
+         the same input events the keyboard does. -->
+    <div id="touch-ui" aria-hidden="true">
+      <div id="dpad">
+        <button class="tbtn" data-key="arrowup"    aria-label="Yuqoriga">&#9650;</button>
+        <button class="tbtn" data-key="arrowleft"  aria-label="Chapga">&#9664;</button>
+        <button class="tbtn" data-key="arrowdown"  aria-label="Pastga">&#9660;</button>
+        <button class="tbtn" data-key="arrowright" aria-label="O'ngga">&#9654;</button>
+      </div>
+      <div id="tacts">
+        <button class="tbtn wide" data-key="tab"  aria-label="Daftar / menyu">MENYU</button>
+        <button class="tbtn big"  data-key="enter" aria-label="Gaplash / davom">E</button>
+      </div>
+    </div>
   </div>
 
   <!-- The last saved position, in the form a browser can read from file://.
@@ -20,6 +39,7 @@
   <script src="js/core/input.js"></script>
   <script src="js/core/audio.js"></script>
   <script src="js/core/render.js"></script>
+  <script src="js/core/touch.js"></script>
   <script src="js/world/map.js"></script>
   <script src="js/world/world.js"></script>
   <script src="js/game/state.js"></script>
@@ -30,6 +50,7 @@
   <script src="js/game/debrief.js"></script>
   <script src="js/game/debug.js"></script>
   <script src="js/game/memory.js"></script>
+  <script src="js/game/account.js"></script>
   <script src="js/data/story.js"></script>
   <script src="js/data/learning.js"></script>
   <script src="js/data/chapter2.js"></script>
