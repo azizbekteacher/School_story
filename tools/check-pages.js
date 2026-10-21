@@ -28,6 +28,7 @@ const ASSETS = ["js/main.js", "css/style.css", "memory.js"];
 const NEEDLE = "Sulton School";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const NO_BROWSER = process.argv.includes("--no-browser");
+const SHOT = process.argv.includes("--shot");
 const baseArg = process.argv.slice(2).find(a => !a.startsWith("--"));
 const base = (baseArg || DEFAULT_BASE).replace(/\/?$/, "/");
 
@@ -233,9 +234,41 @@ async function bootCheck() {
 
     check("headless Chrome loaded " + base, probe.state !== null, "state=" + JSON.stringify(probe.state));
     check("game boots to the title screen", probe.state === "title", "GAME.getState() = " + JSON.stringify(probe.state));
+
+    // Optional visual proof: capture the real title screen from the live URL.
+    if (SHOT) {
+      const shotDir = path.join(__dirname, "shots");
+      fs.mkdirSync(shotDir, { recursive: true });
+      const shotFile = path.join(shotDir, "pages-title.png");
+      const img = await ws.cmd("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(shotFile, Buffer.from(img.data, "base64"));
+      const bytes = fs.statSync(shotFile).size;
+      check("title screen screenshot captured", bytes > 10000, shotFile + " (" + bytes + " bytes)");
+    }
+
     check("chapter registry is populated", probe.chapters !== null && probe.chapters > 0, probe.chapters + " chapter(s)");
     check("canvas is 960x600", !!probe.canvas && probe.canvas.w === 960 && probe.canvas.h === 600,
       probe.canvas ? probe.canvas.w + "x" + probe.canvas.h : "no canvas");
+
+    // The canvas is the game. A blank or all-one-colour canvas would still pass
+    // every script-level check, so sample real pixels and prove it is painted.
+    const pixels = JSON.parse(await ev(`(function(){
+      var c = document.getElementById("game");
+      var g = c.getContext("2d");
+      var d = g.getImageData(0, 0, c.width, c.height).data;
+      var colours = {}, n = 0;
+      for (var y = 0; y < c.height; y += 8) {
+        for (var x = 0; x < c.width; x += 8) {
+          var i = (y * c.width + x) * 4;
+          var key = d[i] + "," + d[i+1] + "," + d[i+2];
+          if (!colours[key]) { colours[key] = 0; n++; }
+          colours[key]++;
+        }
+      }
+      return JSON.stringify({ distinctColours: n, sampled: Math.ceil(c.height/8) * Math.ceil(c.width/8) });
+    })()`));
+    check("canvas is actually painted", pixels.distinctColours >= 20,
+      pixels.distinctColours + " distinct colours across " + pixels.sampled + " samples");
     check("no uncaught page exceptions", pageErrors.length === 0,
       pageErrors.length ? pageErrors.join(" | ").slice(0, 400) : "none");
     check("no console errors", consoleErrors.length === 0,
