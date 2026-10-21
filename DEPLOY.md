@@ -23,7 +23,18 @@ GitHub Pages is configured with **GitHub Actions** as its source
 (`build_type: workflow`), not "deploy from a branch". The site is the
 repository root, so `index.html` is the entry point.
 
-A run takes about a minute. Progress and history:
+The workflow's `deploy` job runs in the `github-pages` environment. That
+environment was created with a deployment branch policy that allowed only
+`main`, so the first deploy from `master` was rejected with *"Branch
+"master" is not allowed to deploy to github-pages due to environment
+protection rules."* The fix, already applied, is to allow `master`:
+
+```powershell
+gh api -X POST /repos/azizbekteacher/School_story/environments/github-pages/deployment-branch-policies `
+  -f name=master -f type=branch
+```
+
+A run takes under a minute. Progress and history:
 
 ```powershell
 gh run list --repo azizbekteacher/School_story --workflow pages.yml
@@ -43,9 +54,19 @@ clean up.
 
 ## Checking the live site
 
-`node tools/check-pages.js` fetches the live URL and the three asset paths
-(`js/main.js`, `css/style.css`, `memory.js`) and fails if any is not HTTP 200
-or if the HTML does not contain `Sulton School`.
+`node tools/check-pages.js` verifies the real deployment:
+
+- the live URL returns HTTP 200 and the HTML contains `Sulton School`,
+- `js/main.js`, `css/style.css` and `memory.js` all return 200 (the classic
+  subpath bug is a 404 on these),
+- no `src`/`href` in the served HTML is root-absolute,
+- dev-only paths (`tools/`, `play-stable.bat`) are not served,
+- headless Chrome loads the URL, reaches the title screen, presses Enter and
+  confirms the game state moves to `play` with a player in the world — failing
+  on any console error, uncaught exception or failed request.
+
+Add `--no-browser` to skip the Chrome part, or pass a base URL as the first
+argument to check a different deployment.
 
 ## Refreshing a stale deploy
 
