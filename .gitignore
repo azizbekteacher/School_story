@@ -15,3 +15,6 @@ desktop.ini
 # No secrets, no tokens, no credentials belong in this repo.
 .env
 *.key
+
+# The stable worktree created by play-stable.bat
+_stable-play/
