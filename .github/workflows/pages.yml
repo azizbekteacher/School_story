@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+# The game is a plain static site: no build step, no npm, no bundler.
+# This workflow publishes the repository root to GitHub Pages so it stays
+# playable at https://azizbekteacher.github.io/School_story/ .
+# Every asset reference in index.html is relative, so the /School_story/
+# subpath needs no rewrite.
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; let a newer push finish rather than cancel it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage the site
+        # Copy the repo root minus dev-only material into _site/. Nothing is
+        # moved or restructured in the repository itself.
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'tools' \
+            --exclude '_stable-play' \
+            --exclude 'play-stable.bat' \
+            ./ _site/
+          touch _site/.nojekyll
+          echo "--- staged ---"
+          find _site -maxdepth 2 -not -path '*/.git*' | sort
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
