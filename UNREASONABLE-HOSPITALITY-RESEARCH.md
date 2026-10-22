@@ -104,17 +104,33 @@ precise about it.
   phrasing in the book". The book's own service/hospitality contrast is better taught by
   *behaviour*: service is what the guest asked for; hospitality is what they didn't.
 
-### 1.5 "One size fits one" — **could not verify; treat as unattributed** **(b)/(c)**
+### 1.5 "One size fits one" — **VERIFIED in the Notion highlights; it is Coraine's, quoted by Guidara** **(b)/(c)**
 
-I searched for this repeatedly and got no usable result. My honest position: the *idea* is
-plainly the book's (everything from the hot dog to the custom chair is one-size-fits-one), and
-the phrase is widely used in hospitality training, **but I could not confirm it appears in this
-book, nor confirm the attribution to Richard Coraine.** The nearest verified equivalents are:
+*Superseded 2026-10-22.* This section previously said *could not verify; treat as
+unattributed*. That was wrong, and the Notion highlight page settles it. Verbatim,
+reconstructed across blocks **587–592** of `Book insights`
+(`4002d18e-3d59-8187-a7bd-c9e21cf223a3`); the `▪` sits on block **587**,
+id `4002d18e-3d59-814d-a260-e064dbcb5c0a`:
+
+> "One of Richard Coraine's most often repeated sayings was "One size fits one."
+> He was referring to the hospitality experience: some guests love it when you
+> hang out at the table and schmooze, while others want you to take their order
+> and disappear. It's your job to read the guest and to serve them how they want
+> to be served"
+
+Two corrections to the old text: the phrase **is** in the material, and the
+attribution **is** Coraine's (Guidara is quoting him). So it is quotable — but only
+with the right attribution: *"Richard Coraine's saying, quoted by Guidara"*, never
+as Guidara's own coinage. See [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md)
+§4 for the mining-verified form and the block-range citation rule.
+
+The nearest Guidara-in-his-own-words equivalents are unchanged:
 
 - Guidara's own line, Chapter 9: **"Don't try to be all things to all people. If you try to be all things to all people, it's proof that you don't have a point of view."** **(a)**
 - The Legend system in §3, which is one-size-fits-one *operationalised*. **(a)**
 
-Recommendation: teach the concept, don't cite the phrase.
+Recommendation: teach the concept; quote the phrase, attributed to Coraine, or
+paraphrase it in Guidara's own words.
 
 ### 1.6 "Being present vs. attentive" — verified, and it is a *measured* claim **(a)**
 
@@ -488,8 +504,12 @@ A sense of place · "It had become cool to care."
 family meal · the both-sides-of-the-wall partnership.
 
 **Attributed to Guidara but NOT verified in this book:** "Service is black and white, hospitality
-is colour" (as a slogan) · "One size fits one" · "The answer is yes, what is the question?" ·
+is colour" (as a slogan) · "The answer is yes, what is the question?" ·
 "The 2-minute check-in" · a guest-preference database.
+
+**Now verified, with a caveat:** "One size fits one" **is** in the book — but it is
+**Richard Coraine's** saying, quoted by Guidara (Notion blocks 587–592). Attribute it
+to Coraine or paraphrase it. See §1.5.
 
 ### 6.3 The closing line — a gift for the game's final debrief **(a)**
 
@@ -804,7 +824,7 @@ Because you asked me to verify rather than invent, here is the explicit verdict 
 | Claim often attributed to this book | Verdict |
 |---|---|
 | "Service is black and white, hospitality is colour" (as a sentence) | **Not found as a sentence.** The image ("turn the world from black and white to color") is verified **(a)**; the two-clause slogan looks like a later distillation **(c)**. |
-| "One size fits one" | **Not verified in this book.** No usable search result. Concept is present; phrase is not confirmed. |
+| "One size fits one" | **Verified — but it is Richard Coraine's saying, quoted by Guidara.** Blocks 587–592 of the Notion highlight page. Quotable only with that attribution; never as Guidara's own coinage. See §1.5. |
 | "The answer is yes — what is the question?" | **Not in this book.** Belongs to a different hospitality lineage. Do not attribute. |
 | "The 2-minute check-in" | **Not in this book.** Generic training device. |
 | A guest-preference database / CRM | **Not verified.** The book's real mechanism is the pre-meal huddle, storytelling, and the Dreamweaver role. **(a)** for those; **(a)** for the absence. |
