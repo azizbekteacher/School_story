@@ -276,7 +276,7 @@ const AUTOPLAY = (maxSteps) => `(async function () {
     check(run2.reachedDebrief, "chapter 2 reaches the debrief");
     check(run2.chapter === "ch2", "still in chapter 2 at the end");
     check(run2.minigames.length >= 1, "played at least one chapter-2 minigame (" + run2.minigames.join(", ") + ")");
-    check(run2.minigames.every(m => ["firstNinety", "registerRun", "complimentRun"].indexOf(m) >= 0), "only chapter-2 minigames ran");
+    check(run2.minigames.every(m => ["firstNinety", "cardRun", "giftRun"].indexOf(m) >= 0), "only chapter-2 minigames ran");
     check(run2.principleIds.length > 0 && run2.principleIds.every(p => /^C2-/.test(p)), "only C2 principles scored (" + run2.principleIds.join(", ") + ")");
     check(run2.beat === "done", "final beat is 'done'");
 

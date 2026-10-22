@@ -343,12 +343,16 @@ Choices and their gates:
   prefer the documented `requires.intel` shape for gates at the lesson.
   **Chapter 1 uses all three of its real gates** (`intel_football`,
   `intel_sick`, `intel_quiet` in `timur_start/tm_q`).
-  **Chapter 2 contains zero `requires` and zero `lockedText` of any kind** — an
-  earlier version of this line claimed chapter 2 used `requires.flag`, which was
-  never true. The consequence is worth understanding before copying it: every one
-  of chapter 2's 17 intel ids is write-only, so its information economy is
-  decorative. Do not inherit that — a chapter without a single gate cannot teach
-  the player that what they learned mattered.
+  **Chapter 2 now has four real gates**, each with `lockedText`:
+  `CH2_NM_2` needs `intel_jasur_joke`, `CH2_GF_3` needs `intel_bekzod_new`,
+  `CH2_HK_4` needs `intel_dilnoza_explains`, `CH2_EX_3` needs
+  `intel_rule_reason`. It grants 17 intel ids and reads 4 of them in a gate, so the
+  rest are still write-only — a known, deliberate remainder, not a claim.
+  (For weeks this line said chapter 2 had **zero** gates while an even older line
+  claimed it used `requires.flag`. Both were wrong. The lesson is at §11:
+  *a green gate is not evidence that a feature exists* — `validate-chapter2.js`
+  cannot tell a reachable gate from an absent one, and a prose changelog cannot
+  tell the truth from a wish. Count them in the live file.)
 
 **`multi` is the "ask several questions" node** — a question menu with a budget:
 
@@ -736,6 +740,115 @@ the repo over a tiny `http.createServer` because it needs `getImageData`, which
 
 ## 11. Gotchas that have actually bitten
 
+### A green gate is not evidence that a feature exists
+
+This is the most expensive gotcha in the file, and it has now happened twice.
+
+A wave wrote into `PROMPT-LIBRARY.md` that chapter 2 had seven active `requires`
+gates and a `registerRun` minigame wired into the story. The live file had
+**zero** `requires`, zero `lockedText`, and a 463-line `registerRun` that **no
+node referenced**. Every gate was green throughout, because the validators check
+what a chapter claims *structurally* — ids present, notes covered, one
+`endMission` — and none of them can tell a gate that exists from a gate that was
+merely written about, or a minigame that is registered from one that is
+reachable.
+
+Three separate false claims about chapter 2 lived in this file and the guides for
+weeks (zero `requires` gates, `C2-001`…`C2-006`, "chapter 2 uses
+`requires.flag`") and every one was caught only by running the code or reading
+the live file — never by reading the previous changelog.
+
+**The rule:** before you write "X is wired", "Y is gated", or "Z is reachable",
+run something that proves the *behaviour*:
+
+- a gate is real → it has `requires` **and** `lockedText` in the live file, and
+  the intel it names is granted somewhere (`dialogue.js` gates show locked when
+  unmet, so an ungranted intel means a permanently-locked door);
+- a minigame is reachable → some node names it, and
+  `playtest.js --chapter=ch2` actually plays it;
+- a minigame *works* → drive it in a vm harness and force **both** a win and a
+  loss. `G.debug.forceMinigame(win)` is the host hook; timers need real
+  `update(dt)` frames, so a driver must call `G.minigameHost.update(dt)` too.
+
+Verify against the live file, never against the last changelog — including this
+one.
+
+### The trigger never fires while the player stands still (`quest.js`)
+
+Reported as *"it is getting stuck on birinchi 90 soniya … some dialogs with
+students but not next step appearing."* It looked like thin content. It was an
+engine bug.
+
+`quest.js` armed `pendingTriggerZone` **only when the player changed zone**. But
+chapter 2's `door` scene runs *inside* the classroom and advances the beat to
+`open`, whose trigger is **also** on the classroom. The zone never changed, so
+`pendingTriggerZone` stayed null and the trigger could never fire — the objective
+hung until the player happened to leave the room and re-enter it.
+
+Fixed in `quest.js` (`5ee34c0`) by re-arming on **beat change** as well as zone
+change:
+
+```js
+var beatNow = beat();
+if (zone !== lastZone) { lastZone = zone; pendingTriggerZone = zone; lastBeat = beatNow; }
+else if (beatNow !== lastBeat) { lastBeat = beatNow; pendingTriggerZone = zone; }
+```
+
+The generalisable lesson: **a trigger is a function of (zone, beat), so both
+inputs are change-detectors.** Any beat that is set from *within* the same zone
+its trigger lives in depends on this. When adding a chapter whose scenes advance a
+beat without moving the player, test it standing still — not by walking around.
+
+### An option's `next` is a NODE id, never a scene id
+
+`choice`/`multi` option `next` values resolve **inside the same scene's `nodes`
+map**. Scenes are only entered by `triggers[].scene`, `npc.entry[beat]`, or
+`story.opening`. Writing a scene id in `next` produces the validator's
+"missing node" and "no terminal node" errors together, which is a confusing pair
+until you know this.
+
+This bit during the chapter 2 recreation: the `wobble` beat's options pointed at
+scene ids (`wob_zarina`, …). The correct shape is the one the original used —
+the scene **ends**, and the player physically walks to a pupil, whose
+`npc.entry.wobble` starts that pupil's scene. Every `endMission` node is likewise
+a terminal `end` node inside a scene, not a scene of its own.
+
+### Chapter 2's beat list, and why it changed
+
+The recreated chapter (`2026-10-22`) runs, in order:
+
+```
+before > door > open > intro > hook > names > gift > wobble > exit > done
+```
+
+The old list was `before door open names rules task gift wobble exit done`. The
+change is the user's own running order, and it is binding: introduce yourself →
+why the subject is useful and can be fun → get to know them and one fact each →
+**announce what gifts they get if they answer correctly** → only then formal
+work. The old chapter jumped to exercises after two names, which was the
+complaint. `rules` and `task` folded into `names`/`hook`/`gift`.
+
+Triggers: one per beat after `before`, all `once: true`; `exit` on the corridor,
+the rest on the classroom. `names` and `hook` are **also** NPC-beat keyed so the
+generic playtest walker can advance them (§11, `BEAT_PLAN`).
+
+### There is no documented one-lesson turnaround — do not fake one
+
+The chapter-2 recreation asked for real precedents of someone turning a bored
+class into an excited one. The research is in
+`_ch2-research/class-turnarounds.md` and its **headline finding is negative**:
+there is no documented, named, first-person account of turning a hostile class
+around in a single 45-minute lesson. Everything documented works over a week, a
+term, a semester or a year.
+
+So chapter 2 stages a **first lesson** honestly — a beginning, not a conversion —
+and says so in its header. Do not let a future edit claim a one-lesson miracle,
+and do not paste the PGD numbers (`engaged time 58.75% → 79.70%`) in as if the
+greeting alone caused them: the study's own caveat is that its teachers had "low
+baseline levels of classroom management practices", so part of the gain may be
+the training rather than the greeting. Also: **zero Uzbek-context sources
+exist** for this technique set (all US/UK) — a live risk, flagged, not solved.
+
 ### The hero facing bug — art, not logic
 
 Reported as *"Hero is looking left when I am moving right."* The movement logic
@@ -776,9 +889,9 @@ says as much: chapter 1 "keeps its beat→NPC map in the playtest harness".
 Do not "clean this up" by deleting `BEAT_PLAN`: chapter 1 would stop being
 verifiable. If you add a chapter, the generic path is what will exercise it — so
 give your NPCs beat-keyed entries for the beats where they matter, and give every
-remaining beat a trigger. Chapter 2 does both: `names`/`rules` are NPC-keyed,
-`wobble` is NPC-keyed on all six pupils, and `before`/`door`/`open`/`task`/`exit`
-are delivered by triggers.
+remaining beat a trigger. Chapter 2 does both: `names` and `hook` are NPC-keyed,
+`wobble` is NPC-keyed on all six pupils, and the rest (`before`/`door`/`open`/
+`intro`/`gift`/`exit`) are delivered by triggers.
 
 ### Chapter 1's spawn and camera must not be overridden
 

@@ -158,24 +158,24 @@
     principles: ["C2-001"],
     create: function (api) {
       var MOVES = [
-        { id: "self", title: "O'zingizni tanishtirish",
-          line: "«Men Azizbek. Bu yil matematikadan men o'qitaman.»",
-          warm: 2, order: 0, kind: "neutral" },
-        { id: "ask", title: "Ularga savol berish",
-          line: "«Kim bu yerda eng katta sonni biladi?»",
-          warm: 2, order: -1, kind: "neutral" },
-        { id: "joke", title: "O'zingiz ustidan hazil",
-          line: "«Men bu misolni kecha yecholmadim. Kim menga o'rgatadi?»",
-          warm: 2, order: -1, kind: "warm" },
-        { id: "rule", title: "Bitta qoida aytish",
-          line: "«Xato qilish mumkin. Xatoni yashirish — mumkin emas.»",
+        { id: "greet", title: "Har birini ismi bilan kutib olish",
+          line: "«Salom, Zarina. Salom, Dilnoza.» — har biriga alohida, eshikda.",
+          warm: 3, order: 1, kind: "warm" },
+        { id: "precorrect", title: "Oldindan aytish: nima bo'ladi",
+          line: "«Yigirma soniyadan keyin boshlaymiz. Kim tayyor bo'lsa — qo'lini ko'taradi.»",
           warm: 0, order: 3, kind: "cold" },
-        { id: "silence", title: "Jim turib, sinfni kutish",
-          line: "Gapirmaysiz. Sinf o'zi jim bo'lguncha kutasiz.",
-          warm: -1, order: 3, kind: "cold" },
-        { id: "board", title: "Doskaga mavzuni yozish",
-          line: "Orqangizni burib, mavzuni yozasiz. Ular kutadi.",
-          warm: -1, order: 2, kind: "cold" }
+        { id: "board", title: "Vazifa doskada allaqachon yozilgan",
+          line: "Ular kirganda ish tayyor turadi. Hech kim ko'rsatma kutmaydi.",
+          warm: 0, order: 3, kind: "cold" },
+        { id: "quiet", title: "Kechagi kunga bir og'iz so'z",
+          line: "Bitta bolaga, boshqalar eshitmaydigan ovozda: «Bugun osonroq bo'ladi.»",
+          warm: 3, order: 0, kind: "warm" },
+        { id: "praise", title: "Aniq maqtov — kimga va nimaga",
+          line: "«Nafisa, daftarni birinchi bo'lib ochding. Ana shunday boshlanadi.»",
+          warm: 2, order: 1, kind: "warm" },
+        { id: "frame", title: "Xonaning qanday xona ekanini aytish",
+          line: "«Bu xonada xato qilish mumkin. Xatoni yashirish — mumkin emas.»",
+          warm: 1, order: 2, kind: "neutral" }
       ];
 
       var FRAMES = {
@@ -258,7 +258,12 @@
         api.finish({
           win: w,
           choiceId: w ? "CH2_MG_NINETY_WIN" : "CH2_MG_NINETY_LOSE",
-          detail: "issiqlik " + tw + " / tartib " + to + " (ramka: " + (frame ? FRAMES[frame].name : "—") + ")"
+          detail: "issiqlik " + tw + " / tartib " + to,
+          notes: w
+            ? [{ principle: "C2-001", verdict: "good",
+                 text: "Iliq va tartibli — ikkalasi birga. Bu tasodif emas: eshikda ismi bilan kutib olish, oldindan aytilgan jumla va doskada tayyor turgan ish birgalikda ishlaydi. Sinf sizni tanladi." }]
+            : [{ principle: "C2-001", verdict: "weak",
+                 text: "Bitta o'qni yo'qotdingiz: iliqliksiz tartib — sovuqlik, tartibsiz iliqlik — shovqin. Birinchi taassurotni qaytarish qirq daqiqa oladi." }]
         });
       }
 
@@ -577,385 +582,254 @@
       details: ["uxlab qolgan", "birinchi qatorda", "hamma savolga javob beradi"], truth: 0 }
   ];
 
-  G.minigames.register("registerRun", {
-    title: "Jurnal: o'n to'rt ism",
-    subtitle: "Ism aytish vaqt oladi. Bitta haqiqiy narsani ko'rish undan ham ko'p vaqt oladi.",
-    controls: " strelkalar — parta tanlash · ENTER — ism aytish · 1-5 — ism · 1-3 — batafsil · SPACE — darsni boshlash",
+  G.minigames.register("cardRun", {
+    title: "O'n to'rt ism, olti karta",
+    subtitle: "O'n to'rt kartani o'qishga vaqt yo'q. Oltitasini tanlang — keyin uchtasini ishlatasiz.",
+    controls: "1-9 va strelkalar — karta tanlash · ENTER — o'qish / ishlatish · ESC — bekor qilish",
     principles: ["C2-003"],
-
     create: function (api) {
-      var cfg = api.cfg || {};
-      var forgiving = !!cfg.forgiving;
-      var total = typeof cfg.seconds === "number" ? cfg.seconds : 70;
+      var W = 852, H = 418;
+      var MOUSE_X = 54, MOUSE_Y = 108;
 
-      var named = [], seen = [];
-      var names = 0, details = 0, wrong = 0;
-      var trust = forgiving ? 4 : 3;
-      var maxTrust = forgiving ? 4 : 3;
-      // the first ninety seconds already happened; a cold room costs you trust
-      if (api.state && api.state.flags && api.state.flags.c2_room_cold) {
-        trust = Math.max(1, trust - 1);
-      }
+      // 14 pupils. Six have real facts worth using; the rest are noise on purpose.
+      // "use" is what the teacher could SAY to that pupil if he read the card.
+      var PUPILS = [
+        { name: "Zarina",  fact: "U boshqalarga tushuntirib beradi — hali o'zi ham ishonchi komil bo'lmasa ham.", use: "Sen tushuntirishni yaxshi ko'rasan. Bugun sen boshla." },
+        { name: "Dilnoza", fact: "U hech kim so'ramagan savolni so'raydi.", use: "Sen savol berasan. Bugun bitta savolingni oxiriga qoldir." },
+        { name: "Jasur",   fact: "Eng baland ovoz, lekin kulganlar unga qarab kuladi, u bilan emas.", use: "Sen sinfning ovozisan. Bugun men senga tayanaman." },
+        { name: "Nafisa",  fact: "Kitobdagi hamma misolni yechib bo'lgan — shuning uchun jim.", use: "Sen hammasini bilasan. Senga qiyinroq savol beraman." },
+        { name: "Bekzod",  fact: "Uch hafta oldin kelgan, daftari yo'q, bitta yirtilgan varaq.", use: "Sen yangi kelgansan. Men ham. Keling birga o'rganamiz." },
+        { name: "Timur",   fact: "Har kuni erta keladi va oshxonada yakka non yeydi.", use: "Sen erta kelasan. Ertaga birga choy ichamiz." },
+        { name: "Aziza",   fact: "Darsdan keyin ukasini kutadi.", use: "Ukangni kutasan — bugun tezroq chiqishing mumkin." },
+        { name: "Sardor",  fact: "Futbol o'ynaydi, har tanaffusda.", use: "Sen futbolchisan. Hisobni tez yuritasan shekilli." },
+        { name: "Kamola",  fact: "Daftarining chetiga gul chizadi.", use: "Chizishing chiroyli. Doskaga sen yoz." },
+        { name: "Rustam",  fact: "Birinchi partada o'tiradi, hamma savolga qo'l ko'taradi.", use: "Sen birinchi bo'lib qo'l ko'tarasan. Bugun oxirgi bo'lib ko'r." },
+        { name: "Gulnora", fact: "Ovqatlanmaydi — tanaffusda kutubxonada.", use: "Kutubxonada ko'p bo'lasan. Menga bitta kitob maslahat ber." },
+        { name: "Umid",    fact: "Telefonga qarab o'tiradi, lekin hamma javobni biladi.", use: "Sen tez hisoblaysan. Ekranni yashir — o'zing ayt." },
+        { name: "Sevara",  fact: "Doim ikkinchi qatorda, hech kim bilan gaplashmaydi.", use: "Sen jim o'tirasan. Bugun bir marta gapir — men kutaman." },
+        { name: "Farrux",  fact: "Singlisi shu maktabda o'qiydi.", use: "Singling bu maktabda. U ham sen kabi jimmi?" }
+      ];
 
-      var phase = "browse";      // browse | name | detail | summary | done
+      var READ_BUDGET = 6;
+      var USE_TARGET = 3;
+
+      var read = [];        // indices read
+      var used = [];        // indices used
+      var guessing = false; // once budget spent, remaining picks are guesses
+      var phase = "read";   // read | use | done
       var sel = 0;
-      var cand = [];
-      var detailChips = [];
-      var clock = total;
-      var t = 0, sumT = 0, finished = false, msg = "", msgT = 0;
-      var pendingPupil = -1;
+      var t = 0, doneT = 0, finished = false, flash = 0, flashGood = false;
+      var feedback = "";    // last line shown
+      var feedbackT = 0;
 
-      // intel from before the bell: three names you already had
-      var pre = [];
-      var intel = (api.state && api.state.intel) || [];
-      function has(i) { return intel.indexOf(i) >= 0; }
-      if (has("intel_zarina")) pre.push("Zarina");
-      if (has("intel_bekzod")) pre.push("Bekzod");
-      if (has("intel_jasur")) pre.push("Jasur");
-      for (var p0 = 0; p0 < PUPILS.length; p0++) {
-        if (pre.indexOf(PUPILS[p0].name) >= 0) {
-          named[p0] = true;
-          names++;
+      function sfx(name, f) {
+        if (api.sound && api.sound[name]) { try { api.sound[name](f); } catch (e) {} }
+      }
+      function wasRead(idx) { return read.indexOf(idx) >= 0; }
+      function isUsed(idx) { return used.indexOf(idx) >= 0; }
+
+      function layout() {
+        var out = [];
+        for (var i = 0; i < PUPILS.length; i++) {
+          var col = i % 7, row = (i / 7) | 0;
+          out.push({ x: 8 + col * 120, y: 96 + row * 96, w: 112, h: 88 });
         }
+        return out;
       }
 
-      function clockLeft() { return Math.max(0, clock); }
-      function bump(text, kind) { msg = text; msgT = 2.2; lastKind = kind || ""; }
-      var lastKind = "";
-
-      function openPupil(i) {
-        if (finished || phase !== "browse") return;
-        if (named[i]) { bump(PUPILS[i].name + " — allaqachon bilaman", ""); sfx(api, "blip", 520); return; }
-        pendingPupil = i;
-        sel = i;
-        // candidate names: the true one + up to four others not yet learned
-        var others = [];
-        for (var k = 0; k < PUPILS.length; k++) {
-          if (k === i || named[k]) continue;
-          others.push(PUPILS[k].name);
-        }
-        var pick = [PUPILS[i].name];
-        for (var m = 0; m < others.length && pick.length < 5; m++) {
-          if (m % 2 === 0) pick.push(others[m]);
-        }
-        for (var n = 0; n < others.length && pick.length < 5; n++) {
-          if (pick.indexOf(others[n]) < 0) pick.push(others[n]);
-        }
-        // deterministic rotate so the right name is not always chip 1
-        var rot = i % pick.length;
-        cand = pick.slice(rot).concat(pick.slice(0, rot));
-        phase = "name";
-        sfx(api, "blip", 600);
-      }
-
-      function chooseName(idx) {
-        if (phase !== "name" || idx < 0 || idx >= cand.length) return;
-        var i = pendingPupil;
-        var guess = cand[idx];
-        clock -= 3;
-        if (guess === PUPILS[i].name) {
-          named[i] = true; names++;
-          sfx(api, "good");
-          bump(PUPILS[i].name + " — to'g'ri", "good");
-          openDetails(i);
-        } else {
-          wrong++;
-          trust = Math.max(0, trust - 1);
-          clock -= forgiving ? 2 : 5;
-          named[i] = true; names++;
-          sfx(api, "bad");
-          bump("«Men " + guess + " emasman. Men " + PUPILS[i].name + "man.»", "bad");
-          openDetails(i);
-        }
-      }
-
-      function openDetails(i) {
-        var d = PUPILS[i].details;
-        detailChips = d.slice();
-        pendingPupil = i;
-        phase = "detail";
-        if (clockLeft() <= 0) endNow();
-      }
-
-      function chooseDetail(idx) {
-        if (phase !== "detail" || idx < 0 || idx >= detailChips.length) return;
-        var i = pendingPupil;
-        clock -= 4;
-        if (idx === PUPILS[i].truth) {
-          details++; seen[i] = true;
-          sfx(api, "good");
-          bump("Ko'rdingiz: " + detailChips[idx], "good");
-        } else {
-          sfx(api, "blip", 380);
-          bump("Bu boshqa bolaga tegishli edi", "bad");
-        }
-        phase = "browse";
-        pendingPupil = -1;
-        checkEnd();
-      }
-
-      function skipDetail() {
-        if (phase !== "detail") return;
-        phase = "browse";
-        pendingPupil = -1;
-        checkEnd();
-      }
-
-      function checkEnd() {
+      function pick(idx) {
         if (finished) return;
-        if (names >= PUPILS.length) { endNow(); return; }
-        if (clockLeft() <= 0) endNow();
+        if (phase === "read") {
+          if (wasRead(idx)) { feedback = "Bu kartani allaqachon o'qidingiz."; feedbackT = 1.6; sfx("select"); return; }
+          if (read.length >= READ_BUDGET) {
+            // budget spent — switch to use phase
+            phase = "use";
+            feedback = "Olti karta o'qildi. Endi uchtasini ishlating.";
+            feedbackT = 2.2;
+            sfx("tick", 300);
+            return;
+          }
+          read.push(idx);
+          sfx("blip", 380 + read.length * 40);
+          if (read.length >= READ_BUDGET) {
+            feedback = "Olti karta o'qildi. Endi uchtasini ishlating.";
+            feedbackT = 2.2;
+            phase = "use";
+          } else {
+            feedback = PUPILS[idx].name + " — o'qildi.";
+            feedbackT = 1.4;
+          }
+          return;
+        }
+        // use phase
+        if (isUsed(idx)) { feedback = "Uni allaqachon tanladingiz."; feedbackT = 1.4; return; }
+        if (used.length >= USE_TARGET) return;
+        used.push(idx);
+        // A pick is "informed" if the player read that pupil's card.
+        var informed = wasRead(idx);
+        flash = 1; flashGood = informed;
+        sfx(informed ? "good" : "bad", informed ? 560 : 190);
+        feedback = informed
+          ? PUPILS[idx].name + ": «" + PUPILS[idx].use + "» — siz buni bilardingiz."
+          : PUPILS[idx].name + " — taxmin qildingiz. Siz bu kartani o'qimadingiz.";
+        feedbackT = 2.6;
+        if (used.length >= USE_TARGET) { phase = "done"; doneT = 0; sfx("select"); }
       }
 
-      function endNow() {
-        if (finished) return;
-        if (phase === "summary" || phase === "done") return;
-        phase = "summary";
-        sumT = 0;
-        sfx(api, win() ? "win" : "blip", 300);
+      function informedCount() {
+        var n = 0;
+        for (var i = 0; i < used.length; i++) if (wasRead(used[i])) n++;
+        return n;
       }
-
-      function win() {
-        return names >= 5 && details >= 2 && wrong <= 2 && trust >= 2;
-      }
+      function win() { return informedCount() >= 2; }
 
       function finishNow() {
         if (finished) return;
         finished = true;
-        var w = win();
+        var n = informedCount(), w = win();
+        sfx(w ? "win" : "bad");
         api.finish({
           win: w,
           choiceId: w ? "CH2_MG_NAMES_WIN" : "CH2_MG_NAMES_LOSE",
-          detail: "ismlar " + names + "/14, ko'rilgan " + details + ", xato " + wrong + ", ishonch " + trust + "/" + maxTrust
+          detail: "o'qildi " + read.length + " / ishlatildi " + used.length + " / aniq " + n,
+          notes: w
+            ? [{ principle: "C2-003", verdict: "good",
+                 text: "O'n to'rtdan oltitasini tanlab o'qidingiz va faqat bilinganlarini ishlatdingiz. Bu tarqoq diqqat emas — taqsimlangan diqqat. Kimdir ko'rilganini biladi, va bu sanalganidan qimmatroq." }]
+            : [{ principle: "C2-004", verdict: "weak",
+                 text: "Uchtadan " + n + " tasi aniq edi, qolgani taxmin. Bir o'lcham hammaga to'g'ri kelmaydi: noto'g'ri odamga aytilgan to'g'ri gap ham xato gap bo'lib eshitiladi." }]
         });
       }
 
-      function gridRect(i) {
-        var col = i % 7, row = (i / 7) | 0;
-        return { x: 8 + col * 120, y: 36 + row * 122, w: 116, h: 118 };
-      }
-      function chipRect(i) {
-        return { x: 19 + i * 164, y: 352, w: 158, h: 42 };
-      }
-      function detailRect(i) {
-        return { x: 23 + i * 272, y: 352, w: 262, h: 42 };
+      function gridClick(mx, my) {
+        var L = layout();
+        for (var i = 0; i < L.length; i++) {
+          var r = L[i];
+          if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) { pick(i); return true; }
+        }
+        return false;
       }
 
       return {
         update: function (dt) {
           t += dt;
-          msgT = Math.max(0, msgT - dt);
-          if (finished) return;
-          if (phase === "summary") {
-            sumT += dt;
-            if (sumT > 3.4) finishNow();
-            return;
+          feedbackT = Math.max(0, feedbackT - dt);
+          flash = Math.max(0, flash - dt * 2);
+          if (phase === "done") {
+            doneT += dt;
+            if (doneT > 2.4) finishNow();
           }
-          if (phase === "done") return;
-          clock -= dt;
-          if (clock <= 0) { clock = 0; endNow(); }
         },
 
         onKey: function (key) {
           if (finished) return;
-          if (phase === "summary") {
-            if (key === "enter" || key === "space" || key === "r") finishNow();
+          if (phase === "done") { if (key === "enter" || key === "space") finishNow(); return; }
+          if (key >= "1" && key <= "9") {
+            // 1-9 map to the first nine cards; arrows cover the rest
+            var idx = parseInt(key, 10) - 1;
+            if (idx < PUPILS.length) { sel = idx; pick(idx); }
             return;
           }
-          if (phase === "name") {
-            if (key >= "1" && key <= "5") chooseName(parseInt(key, 10) - 1);
-            else if (key === "escape") { phase = "browse"; pendingPupil = -1; }
-            return;
-          }
-          if (phase === "detail") {
-            if (key >= "1" && key <= "3") chooseDetail(parseInt(key, 10) - 1);
-            else if (key === "space" || key === "escape" || key === "enter") skipDetail();
-            return;
-          }
-          // browse
-          if (key === "space") { endNow(); return; }
-          if (key === "arrowleft" || key === "a") { sel = (sel % 7 === 0) ? sel + 6 : sel - 1; sfx(api, "blip", 480); }
-          else if (key === "arrowright" || key === "d") { sel = (sel % 7 === 6) ? sel - 6 : sel + 1; sfx(api, "blip", 500); }
-          else if (key === "arrowup" || key === "w") { sel = (sel + 7) % 14; sfx(api, "blip", 520); }
-          else if (key === "arrowdown" || key === "s") { sel = (sel + 7) % 14; sfx(api, "blip", 460); }
-          else if (key === "enter") { openPupil(sel); }
+          if (key === "arrowleft" || key === "a") { sel = (sel + PUPILS.length - 1) % PUPILS.length; sfx("tick", 260); return; }
+          if (key === "arrowright" || key === "d") { sel = (sel + 1) % PUPILS.length; sfx("tick", 260); return; }
+          if (key === "arrowup" || key === "w") { sel = (sel + PUPILS.length - 7) % PUPILS.length; sfx("tick", 260); return; }
+          if (key === "arrowdown" || key === "s") { sel = (sel + 7) % PUPILS.length; sfx("tick", 260); return; }
+          if (key === "enter" || key === "space") { pick(sel); return; }
         },
 
-        onPointer: function (x, y, kind) {
-          if (finished || kind !== "down") return;
-          var p = { x: x - MOUSE_X, y: y - MOUSE_Y };
-          if (phase === "summary") { finishNow(); return; }
-          if (phase === "name") {
-            for (var c = 0; c < cand.length; c++) {
-              if (inRect(p, chipRect(c).x, chipRect(c).y, 158, 42)) { chooseName(c); return; }
-            }
-            return;
-          }
-          if (phase === "detail") {
-            for (var d = 0; d < detailChips.length; d++) {
-              var r = detailRect(d);
-              if (inRect(p, r.x, r.y, r.w, r.h)) { chooseDetail(d); return; }
-            }
-            return;
-          }
-          for (var i = 0; i < 14; i++) {
-            var g = gridRect(i);
-            if (inRect(p, g.x, g.y, g.w, g.h)) {
-              if (sel === i) openPupil(i);
-              else { sel = i; sfx(api, "blip", 520); }
-              return;
-            }
-          }
+        onPointer: function (x, y) {
+          if (finished) return;
+          gridClick(x - MOUSE_X, y - MOUSE_Y);
         },
 
         draw: function (ctx) {
-          drawTopBar(ctx, clock, total, names, details, trust, maxTrust);
-          if (phase === "summary") { drawSummary(ctx); return; }
-          drawGrid(ctx);
-          drawPanel(ctx);
-        },
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
 
-        debugState: function () {
-          return { phase: phase, names: names, details: details, wrong: wrong, trust: trust, clock: clock };
-        },
-        debugName: function (i) { sel = i; openPupil(i); return cand.slice(); },
-        debugPick: function (i) { if (phase === "name") chooseName(i); else if (phase === "detail") chooseDetail(i); }
+          // header
+          ctx.fillStyle = "rgba(255,255,255,.55)";
+          ctx.font = "13px system-ui, sans-serif";
+          ctx.fillText("O'qilgan: " + read.length + "/" + READ_BUDGET +
+                       "   ·   Ishlatilgan: " + used.length + "/" + USE_TARGET, 8, 20);
+
+          if (phase === "read") {
+            ctx.fillStyle = "rgba(255,213,128,.95)";
+            ctx.fillText("Kartalarni o'qing: " + (READ_BUDGET - read.length) + " ta qoldi", 8, 40);
+          } else {
+            ctx.fillStyle = "rgba(150,230,170,.95)";
+            ctx.fillText("Endi faktlarni ishlating — kimga, nima deysiz?", 8, 40);
+          }
+
+          var L = layout();
+          for (var i = 0; i < PUPILS.length; i++) {
+            var r = L[i], p = PUPILS[i];
+            var visited = wasRead(i);
+            var spent = isUsed(i);
+
+            // card background
+            if (spent) ctx.fillStyle = wasRead(i) ? "rgba(90,150,110,.42)" : "rgba(160,80,80,.40)";
+            else if (visited) ctx.fillStyle = "rgba(255,255,255,.16)";
+            else ctx.fillStyle = "rgba(255,255,255,.07)";
+            ctx.fillRect(r.x, r.y, r.w, r.h);
+
+            // selection ring
+            if (i === sel) {
+              ctx.strokeStyle = "rgba(255,222,152,.95)";
+              ctx.lineWidth = 2;
+              ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+            } else {
+              ctx.strokeStyle = "rgba(255,255,255,.14)";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(r.x + .5, r.y + .5, r.w - 1, r.h - 1);
+            }
+
+            // name
+            ctx.fillStyle = "rgba(255,255,255,.94)";
+            ctx.font = "13px system-ui, sans-serif";
+            ctx.fillText(p.name, r.x + 7, r.y + 19);
+
+            // fact or blank
+            if (visited) {
+              ctx.fillStyle = "rgba(255,255,255,.72)";
+              ctx.font = "10px system-ui, sans-serif";
+              var lines = wrap(ctx, p.fact, r.w - 14);
+              for (var k = 0; k < Math.min(3, lines.length); k++) {
+                ctx.fillText(lines[k], r.x + 7, r.y + 34 + k * 12);
+              }
+            } else {
+              ctx.fillStyle = "rgba(255,255,255,.20)";
+              ctx.font = "11px system-ui, sans-serif";
+              ctx.fillText("o'qilmagan", r.x + 7, r.y + 40);
+            }
+
+            // a tick for spent
+            if (spent) {
+              ctx.fillStyle = wasRead(i) ? "rgba(150,230,170,.95)" : "rgba(255,150,150,.95)";
+              ctx.font = "13px system-ui, sans-serif";
+              ctx.fillText(wasRead(i) ? "✓" : "?", r.x + r.w - 18, r.y + 19);
+            }
+          }
+
+          // feedback line
+          if (feedbackT > 0 && feedback) {
+            ctx.fillStyle = flash > 0
+              ? (flashGood ? "rgba(150,230,170,.98)" : "rgba(255,150,150,.98)")
+              : "rgba(255,255,255,.86)";
+            ctx.font = "12px system-ui, sans-serif";
+            var fl = wrap(ctx, feedback, W - 16);
+            for (var q = 0; q < Math.min(3, fl.length); q++) {
+              ctx.fillText(fl[q], 8, 300 + q * 15);
+            }
+          }
+
+          if (phase === "done") {
+            ctx.fillStyle = "rgba(255,255,255,.94)";
+            ctx.font = "15px system-ui, sans-serif";
+            ctx.fillText(win() ? "Yaxshi: ko'pchiligi aniq edi." : "Ko'pi taxmin bo'ldi.", 8, 372);
+          }
+        }
       };
-
-      /* ---------------------------------------------------------- drawing */
-
-      function drawTopBar(ctx, clk, tot, n, det, tr, mtr) {
-        rrect(ctx, 0, 0, W, 28, 6);
-        ctx.fillStyle = "rgba(246,239,227,.05)"; ctx.fill();
-        var left = Math.ceil(clk);
-        txt(ctx, "0:" + (left < 10 ? "0" + left : left), 14, 14, "bold 14px " + SANS, clk < 12 ? RED : GOLD);
-        txt(ctx, "jurnal ochiq", 62, 14, "10px " + SANS, MUTED);
-        txt(ctx, "ismlar " + n + "/14", 300, 14, "bold 11px " + SANS, n >= 5 ? GREEN : CREAM);
-        txt(ctx, "ko'rilgan " + det, 420, 14, "11px " + SANS, det >= 2 ? GREEN : MUTED);
-        txt(ctx, "ishonch", 590, 14, "10px " + SANS, MUTED);
-        for (var i = 0; i < mtr; i++) {
-          ctx.beginPath();
-          ctx.arc(642 + i * 15, 14, 5, 0, Math.PI * 2);
-          ctx.fillStyle = i < tr ? (tr >= mtr ? GREEN : GOLD) : "rgba(246,239,227,.16)";
-          ctx.fill();
-        }
-        txt(ctx, "SPACE — boshlash", 846, 14, "9.5px " + SANS, DIM, "right");
-      }
-
-      function drawGrid(ctx) {
-        for (var i = 0; i < 14; i++) {
-          var r = gridRect(i), p = PUPILS[i], isSel = sel === i && phase === "browse";
-          var known = !!named[i];
-          rrect(ctx, r.x, r.y, r.w, r.h, 7);
-          ctx.fillStyle = known ? "rgba(143,224,143,.06)" : (isSel ? "rgba(242,196,105,.10)" : "rgba(246,239,227,.04)");
-          ctx.fill();
-          ctx.strokeStyle = isSel ? GOLD : (known ? "rgba(143,224,143,.34)" : "rgba(246,239,227,.10)");
-          ctx.lineWidth = isSel ? 1.7 : 1; ctx.stroke();
-
-          drawPupil(ctx, r.x + r.w / 2, r.y + 58, known ? 0.6 : 0.35, 0.8,
-                    t + i, i * 1.7, SKINS[i % SKINS.length]);
-
-          // posture cue
-          var lines = wrap(ctx, p.cue, r.w - 14);
-          ctx.font = "9.5px " + SANS;
-          for (var k = 0; k < Math.min(2, lines.length); k++) {
-            txt(ctx, lines[k], r.x + r.w / 2, r.y + 78 + k * 11, "9.5px " + SANS, MUTED, "center");
-          }
-          // learned detail mark
-          if (seen[i]) {
-            ctx.beginPath();
-            ctx.arc(r.x + r.w - 12, r.y + 12, 4, 0, Math.PI * 2);
-            ctx.fillStyle = GREEN; ctx.fill();
-          }
-          // name plate
-          txt(ctx, known ? p.name : "?  ?  ?", r.x + r.w / 2, r.y + 104,
-              "bold 12px " + SANS, known ? CREAM : DIM, "center");
-        }
-      }
-
-      function drawPanel(ctx) {
-        rrect(ctx, 8, 288, 836, 120, 9);
-        ctx.fillStyle = "rgba(20,17,14,.72)"; ctx.fill();
-        ctx.strokeStyle = "rgba(246,239,227,.10)"; ctx.lineWidth = 1; ctx.stroke();
-
-        if (phase === "browse") {
-          var p = PUPILS[sel];
-          txt(ctx, "Tanlangan parta", 24, 308, "bold 10px " + SANS, GOLD);
-          txt(ctx, p.cue, 24, 326, "12px " + SANS, CREAM);
-          txt(ctx, "ENTER — ism aytish.  Ismni bilmasangiz ham ayting: xato qilish mumkin, jim turish — yo'q.",
-              24, 344, "10px " + SANS, MUTED);
-        } else if (phase === "name") {
-          var pp = PUPILS[pendingPupil];
-          txt(ctx, "Kim bu?  «" + pp.cue + "»", 24, 308, "bold 12px " + SANS, GOLD);
-          txt(ctx, "Jurnaldan tanlang. Xato ism vaqt va ishonch oladi.", 24, 326, "10px " + SANS, MUTED);
-          for (var c = 0; c < cand.length; c++) {
-            var cr = chipRect(c);
-            pill(ctx, cr.x, cr.y, cr.w, cr.h, "rgba(246,239,227,.07)", "rgba(246,239,227,.18)");
-            txt(ctx, String(c + 1), cr.x + 12, cr.y + 21, "bold 10px " + SANS, GOLD);
-            txt(ctx, cand[c], cr.x + 26, cr.y + 21, "13px " + SANS, CREAM);
-          }
-        } else if (phase === "detail") {
-          var dp2 = PUPILS[pendingPupil];
-          txt(ctx, dp2.name + " — bitta haqiqiy narsani ko'ring", 24, 308, "bold 12px " + SANS, GOLD);
-          txt(ctx, "Uchtadan bittasi rost. To'g'ri ko'rgan narsa — ertaga sizning gapingiz.", 24, 326, "10px " + SANS, MUTED);
-          for (var d = 0; d < detailChips.length; d++) {
-            var dr = detailRect(d);
-            pill(ctx, dr.x, dr.y, dr.w, dr.h, "rgba(246,239,227,.07)", "rgba(246,239,227,.18)");
-            txt(ctx, String(d + 1), dr.x + 12, dr.y + 21, "bold 10px " + SANS, GOLD);
-            txt(ctx, detailChips[d], dr.x + 26, dr.y + 21, "12px " + SANS, CREAM);
-          }
-        }
-
-        if (msgT > 0 && msg) {
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, msgT * 1.6);
-          var col = lastKind === "good" ? GREEN : (lastKind === "bad" ? RED : MUTED);
-          txt(ctx, msg, 430, 396, "11px " + SANS, col, "center");
-          ctx.restore();
-        }
-      }
-
-      function drawSummary(ctx) {
-        ctx.save();
-        ctx.fillStyle = "rgba(18,15,12,.97)";
-        rrect(ctx, 0, 28, W, 390, 0); ctx.fill();
-
-        var w = win();
-        txt(ctx, w ? "Jurnal yopildi — siz bir necha bolani ko'rdingiz" : "Jurnal yopildi — ko'pchilikni ko'rmadingiz",
-            426, 68, "bold 17px " + SANS, w ? GREEN : RED, "center");
-        txt(ctx, "ismlar " + names + "/14   ·   ko'rilgan " + details + "   ·   xato " + wrong + "   ·   ishonch " + trust + "/" + maxTrust,
-            426, 96, "11.5px " + SANS, MUTED, "center");
-
-        var missed = [];
-        for (var i = 0; i < PUPILS.length; i++) if (!named[i]) missed.push(PUPILS[i].name);
-        txt(ctx, "Bugun ko'rmaganlaringiz:", 120, 132, "bold 11px " + SANS, GOLD);
-        var line = missed.length ? missed.join(", ") : "hech kim — hammasini ko'rdingiz";
-        var lines = wrap(ctx, line, 610);
-        ctx.font = "12px " + SANS;
-        for (var k = 0; k < Math.min(3, lines.length); k++) {
-          txt(ctx, lines[k], 120, 154 + k * 17, "12px " + SANS, CREAM);
-        }
-        txt(ctx, "Ular sizni ko'rdi. Siz ularni ko'rmadingiz — va ertaga bu farq bilinadi.",
-            426, 236, "11.5px " + SANS, MUTED, "center");
-        txt(ctx, w ? "Ertaga beshtasini ism bilan chaqirasiz. Qolganini — juma." :
-                     "Ertaga o'sha ismlarni to'g'ri ayting. Bu qarz.",
-            426, 262, "11.5px " + SANS, w ? GREEN : GOLD, "center");
-        txt(ctx, "ENTER", 426, 300, "10px " + SANS, DIM, "center");
-        ctx.restore();
-      }
     }
   });
-
-  /* ======================================================================
-     3. TO'G'RI MAQTOV — bitta o'quvchiga bitta aniq gap
-
-     To'rt o'quvchi, har biri haqida bitta fakt. Har safar uch-to'rt maqtov
-     varianti: bittasi aniq va rost, qolganlari umumiy, yolg'on yoki kinoya.
-     To'g'ri gap o'quvchi haqidagi faktga tayanadi. Umumiy gap hech kimga
-     tegishli emas; yolg'on gap esa o'quvchi o'zi biladigan narsaga zid.
-
-     Natija: 3-4 aniq maqtov — g'alaba. Orada umumiy gap bo'lsa — OK.
-     2 yoki undan kam — mag'lubiyat. Host bizni 852x418 ga qisadi. */
 
   var CMP_ROUNDS = [
     {
@@ -1040,8 +914,9 @@
     }
   ];
 
-  G.minigames.register("complimentRun", {
-    title: "To'g'ri maqtov",
+
+  G.minigames.register("giftRun", {
+    title: "Bir o'lcham hammaga to'g'ri kelmaydi",
     subtitle: "Bitta o'quvchi, bitta fakt — va bitta gap. Umumiy maqtov hech kimga tegishli emas.",
     controls: "1-4 — tanlash · ENTER — tasdiqlash · sichqoncha bilan ham bo'ladi",
     principles: ["C2-004"],
@@ -1091,8 +966,8 @@
           else backhanded++;
         }
         var win = right >= 3;
-        var choiceId = !win ? "CH2_MG_COMPLIMENT_WRONG"
-          : (generic > 0 ? "CH2_MG_COMPLIMENT_OK" : "CH2_MG_COMPLIMENT_BEST");
+        var choiceId = !win ? "CH2_MG_GIFT_WRONG"
+          : (generic > 0 ? "CH2_MG_GIFT_OK" : "CH2_MG_GIFT_BEST");
         return {
           right: right, generic: generic, flattery: flattery,
           backhanded: backhanded, win: win, choiceId: choiceId

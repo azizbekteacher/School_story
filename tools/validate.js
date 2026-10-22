@@ -364,7 +364,7 @@ function gidFile(id) {
   if (id === "giftShop") return "gift.js";
   if (id === "travelTalk") return "travel.js";
   if (id === "ballPlay") return "ball.js";
-  if (id === "firstNinety" || id === "registerRun" || id === "complimentRun") return "chapter2.js";
+  if (id === "firstNinety" || id === "cardRun" || id === "giftRun") return "chapter2.js";
   return id + ".js";
 }
 

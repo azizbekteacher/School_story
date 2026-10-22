@@ -182,64 +182,68 @@ G.data.chapter2Learning = {
   // 2. INTEL — every fact the script can grant needs a label here.
   // --------------------------------------------------------------------------
   intel: {
+    intel_math_why: {
+      label: "Nega matematika kerak",
+      usedFor: "Darsni «nega bu kerak» degan savoldan boshlash — fanni formuladan emas, foydasidan ochish."
+    },
     intel_dilnoza_explains: {
-      label: "Dilnoza likes to explain — she will teach a problem she has not solved herself yet",
+      label: "Dilnoza tushuntirishni yaxshi ko'radi — hali o'zi yechmagan misolni ham boshqalarga tushuntiradi",
       usedFor: "Specific praise for Dilnoza; naming her strength out loud"
     },
     intel_timur_bread: {
-      label: "Timur eats bread alone in the morning — he arrives early for the canteen",
+      label: "Timur ertalab yakka non yeydi — oshxonaga erta keladi, keyin devorga suyanib turadi",
       usedFor: "Offering to go to the canteen with him; not putting him in a group"
     },
     intel_bekzod_new: {
-      label: "Bekzod arrived from another school three weeks ago — no notebook, only a torn sheet",
+      label: "Bekzod uch hafta oldin boshqa maktabdan kelgan — daftari yo'q, faqat bitta yirtilgan varaq",
       usedFor: "The notebook and the attention; seeing his 'new boy' position"
     },
     intel_jasur_joke: {
-      label: "Jasur is the loudest voice, but he does not write the verdict — the ones who laugh look to him",
+      label: "Jasur eng baland ovoz, lekin hukmni u yozmaydi — kulayotganlar unga qarab kuladi",
       usedFor: "Not punishing Jasur; recruiting him into the agreement"
     },
     intel_named_two: {
-      label: "You used two names at the door: Dilnoza and Bekzod",
+      label: "Eshikda ikkita ismni ishlatdingiz: Dilnoza va Bekzod",
       usedFor: "Tying the first impression to a name"
     },
     intel_names_method: {
-      label: "Names are not memorised but used correctly — each pupil gave one fact about themselves",
+      label: "Ismlar yodlanmaydi — to'g'ri ishlatiladi. Har bir o'quvchi o'zi haqida bitta gap aytdi",
       usedFor: "The method for learning names; tomorrow's preparation"
     },
     intel_bekzod_way: {
-      label: "Bekzod solves problems a different way — his own method, and it comes out right",
+      label: "Bekzod misollarni boshqacha yechadi — o'z usuli bilan, va javob to'g'ri chiqadi",
       usedFor: "Putting 'Bekzod usuli' on the board; earning his trust"
     },
     intel_rule_reason: {
-      label: "The reason for the agreement: one voice at a time, because thirty minutes must be shared",
+      label: "Kelishuvning sababi: bir vaqtda bitta ovoz, chunki o'ttiz daqiqani bo'lishish kerak",
       usedFor: "Anchoring the agreement in the pupils' own words"
     },
     intel_madrasa: {
-      label: "In the madrasa the teacher knew every name from the first day — no desks, everyone on the floor",
+      label: "Madrasada ustoz birinchi kundan hamma ismni bilardi — parta yo'q edi, hamma polda o'tirardi",
       usedFor: "Redirecting the credential story; connecting your own history to the lesson"
     },
     intel_compliment: {
-      label: "Specific praise: who, what, when — not a general 'well done'",
+      label: "Aniq maqtov: kim, nima, qachon — umumiy «barakalla» emas",
       usedFor: "Compliments delivered during the lesson; repeating them tomorrow"
     },
     intel_bekzod_named: {
-      label: "'Bekzod usuli' is written on the board — the class has a method named after one of them",
+      label: "Doskada «Bekzod usuli» yozilgan — sinfda o'quvchi nomi bilan atalgan usul bor",
       usedFor: "Not wiping the board at the end; naming others too"
     },
     intel_zarina_leader: {
-      label: "Zarina manages the class — she even stops Jasur. She writes verdicts",
+      label: "Zarina sinfni boshqaradi — hatto Jasurni ham to'xtatadi. Hukmni u yozadi",
       usedFor: "Naming Zarina's strength; making her an ally"
     },
     intel_zarina_leads: {
-      label: "Zarina watched you and asked 'why didn't you talk to Jasur?'",
+      label: "Zarina kuzatib turdi va so'radi: «nega Jasur bilan gaplashmadingiz?»",
       usedFor: "An honest conversation with Zarina; recognising the room's real leader"
     },
     intel_jasur_leader: {
-      label: "Jasur authored the agreement in his own words — 'if everyone talks, nobody hears'",
+      label: "Jasur kelishuvni o'z so'zlari bilan aytdi: «hamma gapirsa, hech kim eshitmaydi»",
       usedFor: "Giving the agreement back to him; not punishing him"
     },
     intel_nafisa_quiet: {
-      label: "Nafisa knows the answer but will not say it aloud — she whispers to her neighbour",
+      label: "Nafisa javobni biladi, lekin ovoz chiqarib aytmaydi — qo'shnisiga shivirlaydi",
       usedFor: "A safe channel for Nafisa: alone, quiet voice"
     },
     intel_bekzod_tomorrow: {
@@ -247,7 +251,7 @@ G.data.chapter2Learning = {
       usedFor: "Planning tomorrow's lesson; making him a pupil with a reason to return"
     },
     intel_timur_alone: {
-      label: "Timur asked 'together?' — the first time he has been offered anything",
+      label: "Timur «birga?» deb so'radi — unga birinchi marta nimadir taklif qilindi",
       usedFor: "Starting the morning-bread habit"
     }
   },
@@ -257,369 +261,382 @@ G.data.chapter2Learning = {
   // --------------------------------------------------------------------------
   choiceNotes: {
 
-    // --- before the bell: the two minutes of intel --------------------------
     CH2_Q_DILNOZA: {
       principle: "C2-003",
       verdict: "good",
       title: "You asked before you performed",
-      why: "Two minutes of asking bought you the most useful fact in the room: Dilnoza explains things she has not solved herself, which means she teaches without being asked. Guidara's Dreamweaver exists to notice exactly this. You used the corridor as intelligence, not as waiting.",
+      why: "Two minutes of asking bought the most useful fact in the room: Dilnoza explains things she has not solved herself, which means she teaches without being asked. The Dreamweaver's only job is to notice exactly this. You used the corridor as intelligence, not as waiting.",
       cost: "Twenty seconds.",
-      alternative: "If you have no time to ask, watch instead: who is being listened to without being loud is the same information."
+      alternative: "If you have no time to ask, watch instead: who is listened to without being loud is the same information."
     },
+
     CH2_Q_TIMUR: {
       principle: "C2-003",
       verdict: "good",
-      title: "The pupil eating alone",
-      why: "He told you he comes early to eat alone — a small fact with a large door behind it. That is the whole point of noticing: not that you learned about bread, but that you now know which pupil spends the morning unaccompanied. Use it, and he learns that being seen is not dangerous.",
-      cost: "One question.",
-      alternative: "If you had asked something more 'useful' instead, you would have had less than this."
+      title: "A small fact with a door on it",
+      why: "Asking Timur about the canteen looked like a logistics question. It was not: it produced 'I come early, so I eat now', which tells you he arrives alone and knows his way around. One question, two facts.",
+      cost: "Fifteen seconds.",
+      alternative: "Ask any pupil one practical question on day one. Practical questions are answered honestly."
     },
+
     CH2_Q_BEKZOD: {
       principle: "C2-003",
       verdict: "good",
-      title: "You went to the one standing apart",
-      why: "Every room has someone at the edge, and every teacher sees them and moves on. You crossed the space. He answered looking at his hands, with a torn sheet and neat writing — that is the profile of a pupil who will not ask for help and will remember who offered.",
-      cost: "Thirty seconds and a walk.",
-      alternative: "A pupil at the edge can also be there on purpose. Watch first whether they accept your approach before deciding."
-    },
-    CH2_Q_LISTEN: {
-      principle: "C2-001",
-      verdict: "ok",
-      title: "Listening is intelligence, but it was passive",
-      why: "You learned that Jasur is the loudest voice and that the ones who laugh look to him — which is real and useful. But listening told you about the loudest pupil, and the first lesson's problem is usually the quietest. Sound is easier to gather than silence.",
-      cost: "One of your two minutes went to the pupil who needs it least.",
-      alternative: "Listen, then spend the second minute on whoever did not speak at all."
+      title: "The one standing apart",
+      why: "The pupil standing two steps away from everyone, holding a torn sheet instead of a notebook, is the single most useful thing to know before you walk in. New, three weeks in, no equipment. You learned it by looking and then asking.",
+      cost: "Thirty seconds.",
+      alternative: "If he will not talk, the torn sheet is still information."
     },
 
-    // --- the door -----------------------------------------------------------
+    CH2_Q_LISTEN: {
+      principle: "C2-003",
+      verdict: "good",
+      title: "Listening is intel too",
+      why: "You said nothing and learned the most important thing about the room: the loudest boy is not the leader. People laughed near him, not with him. Guidara's maitre d' reads a room the same way, before anyone speaks.",
+      cost: "Twenty seconds, no risk.",
+      alternative: "Stand where you can hear two conversations and let one finish."
+    },
+
     CH2_DR_1: {
       principle: "C2-002",
       verdict: "good",
-      title: "Two names and one promise",
-      why: "You used two names and then said the honest thing to the other twelve: 'I don't know your names yet, I will by today.' The pupils who heard their names felt seen; the promise gave the rest a reason to expect something. A promise made on day one is still small enough to keep.",
-      cost: "Nothing. The sentence costs one second.",
-      alternative: "If you know no names yet, keep the shape: 'I don't know your names yet — I will by the end of today. Who wants to go first?'"
+      title: "The name opens the door, not the credential",
+      why: "You did not use the name as a weapon, you used it as an introduction — and you used his name first. That is not a display of authority, it is a door opening. A boy blocking a doorway is usually testing one thing: whether you will make him small.",
+      cost: "One second of attention, in front of everyone.",
+      alternative: "If you do not know the name, use your own name and ask his. The move still works."
     },
+
     CH2_DR_2: {
       principle: "C2-008",
       verdict: "weak",
-      title: "Correct, orderly, and addressed to nobody",
-      why: "'Good morning, 5-B, sit down, open your notebooks' is the cleanest form of service. Nobody is offended. But fourteen children heard the same sentence, which means not one of them was addressed. That is reasonable — and reasonable is the thing the book is arguing against.",
-      cost: "You spent the first impression on administration. It can be recovered in the lesson, but not undone.",
-      alternative: "Keep the sentence and add one name to the end of it: '...Bekzod, you were first in today.' One name changes the whole sentence."
+      title: "Correct, and it cost you",
+      why: "'Maths. Sit down, we are losing time.' It works — he sits. But your first sentence to fourteen strangers was about the timetable. They filed that away, and the filing is permanent.",
+      cost: "One second of stiltedness, and a colder room for the next forty minutes.",
+      alternative: "Same content, one extra clause: 'Maths — sit down, and tell me your name first.'"
     },
+
     CH2_DR_3: {
       principle: "C2-001",
       verdict: "ok",
-      title: "Silence is also a sentence",
-      why: "Holding the door is itself a gesture. But you did not choose what the silence said, so the room chose for you — generous, or nervous. You had the leverage and did not use it.",
-      cost: "The room wrote the first impression by itself. You were not in control of it.",
-      alternative: "Hold the door and add four words: 'Come in. I'm expecting you.'"
+      title: "The verdict is reached before you speak",
+      why: "You walked past him to the board without a word. You did not fight a boy for a doorway. But silence is not yet respect — it is a delay, and it can be spent either way.",
+      cost: "Ten seconds of a room waiting.",
+      alternative: "Break it deliberately: write your name, then turn and use one pupil's."
     },
 
-    // --- names --------------------------------------------------------------
+    CH2_IN_1: {
+      principle: "C2-003",
+      verdict: "good",
+      title: "A road, not a trophy",
+      why: "'I started the same way' is the sentence that opens a room. You told them your own road to the subject instead of your trophy. Zarina then asked the only question that mattered — did that teacher know you — and you answered with what you would do today.",
+      cost: "One true sentence about yourself.",
+      alternative: "'I was not the fastest. I was the one who came back the next day.'"
+    },
+
+    CH2_IN_2: {
+      principle: "C2-008",
+      verdict: "weak",
+      title: "The certificate worked, and closed a door",
+      why: "The room respects you; nobody is upset. But respect is not the same as being known, and now you are a competitor, not a companion. Enlightened hospitality is a welcome from the inside, not an exhibition to be admired.",
+      cost: "The certificate is not a lie. It is a smaller number than it looks.",
+      alternative: "Keep it for the minute someone doubts you are qualified, not for the first minute they are deciding who you are."
+    },
+
+    CH2_IN_3: {
+      principle: "C2-001",
+      verdict: "ok",
+      title: "Efficient, not personal",
+      why: "Name, subject, straight to the question. Nothing you said was wrong or rude. But they asked where you came from, and you did not answer. They are deciding whether you are a person; you offered a job title.",
+      cost: "Fifteen seconds.",
+      alternative: "Insert one clause: 'Name, subject, and one thing I would have wanted you to know about me.'"
+    },
+
+    CH2_HK_1: {
+      principle: "C2-003",
+      verdict: "good",
+      title: "Names on the board, not answers",
+      why: "You refused to give the method, and you wrote their guesses on the board with their names. That does two things at once: it makes each guess worth defending, and it makes the person who guessed it visible. 'Ask the shortest question you possibly can' and then be less helpful.",
+      cost: "Five minutes, and you must resist answering.",
+      alternative: "If nobody guesses, offer a wrong one of your own and let them correct it."
+    },
+
+    CH2_HK_2: {
+      principle: "C2-008",
+      verdict: "weak",
+      title: "You gave the formula and ended the argument",
+      why: "n(n-1)/2 is correct. You are now the only person in the room who knows it, and they have stopped talking — not because they understand, but because a person who knows has arrived. A short question with no method beats a formula delivered on time.",
+      cost: "One sentence, and the room goes quiet in the wrong way.",
+      alternative: "Keep the formula until a pupil has put a wrong guess where people can see it."
+    },
+
+    CH2_HK_3: {
+      principle: "C2-008",
+      verdict: "ok",
+      title: "Smaller numbers, same structure",
+      why: "Three people, count it — a real move, and mathematically sane. But they are still computing what you set up rather than wondering. The difference looks small. It decides whether the last thirty minutes are spent with you or near you.",
+      cost: "Three minutes.",
+      alternative: "Let a pupil pick the size of the test case, even if they pick an awkward number."
+    },
+
     CH2_NM_1: {
       principle: "C2-002",
       verdict: "good",
       title: "Not memory — responsibility",
-      why: "Dilnoza asked a technical question and you answered a moral one: names are not about recall, they are about using them correctly. And the offer — 'one fact I can hold on to' — turned you from a performer into a listener. They introduced themselves; you wrote. The lesson did not stop, it continued in a different direction.",
-      cost: "10-15 seconds per pupil, so three minutes for the class. That is the cheapest three minutes in the lesson.",
-      alternative: "If time is short, take just the names now and collect the facts by watching during the lesson."
+      why: "Dilnoza asked a technical question and you answered a moral one: names are not about recall, they are about using them correctly. And 'one fact I can hold on to' turned you from a performer into a listener. They introduced themselves; you wrote. The lesson did not stop, it continued in a different direction.",
+      cost: "Ten to fifteen seconds per pupil, three minutes for the class.",
+      alternative: "If time is short, take the names now and collect facts by watching during the lesson."
     },
+
     CH2_NM_2: {
-      principle: "C2-008",
-      verdict: "weak",
-      title: "The sentence was about you",
-      why: "'I can memorise thirty names in a day' may even be true, and it is still useless here: Dilnoza asked for trust, not for technique. And you made yourself a promise in public. Now they are waiting for it.",
-      cost: "Waiting is the most expensive form of a promise. If you do not deliver, the first impression reverses.",
-      alternative: "If you say it at all, hand it to somebody else: 'I can memorise them, but one teacher taught me to — she knew every name on day one.'"
+      principle: "C2-004",
+      verdict: "good",
+      title: "One size fits one, applied to the loudest boy",
+      why: "You answered Dilnoza but spoke to Jasur, because he was the actual test. You gave him his name and his own joke back, with one condition. That is one-size-fits-one in practice: the same move, cut to the person in front of you.",
+      cost: "Two sentences in front of the room.",
+      alternative: "If the joke is too sharp to name, describe the role instead: 'you are the one who decides what the room sounds like'."
     },
+
     CH2_NM_3: {
       principle: "C2-008",
       verdict: "ok",
-      title: "Honest, and it stopped",
-      why: "'I can't learn them all today, but I'll learn six' is honest, and honesty is always worth something. But 'I know' is a target and 'I want to know' is a movement. Pupils see the movement, not the target.",
-      cost: "The class is still waiting. A target was announced; nothing moved.",
-      alternative: "Add the movement to the same sentence: '...so we start now. Who's first?'"
+      title: "Honest, but it is a target not a move",
+      why: "Six today, six tomorrow — true, and honest is always worth something. But the difference between 'I know' and 'I want to know' is small in words and large in rooms. Pupils watch what you do, not what you set out.",
+      cost: "Ten seconds.",
+      alternative: "Fix tomorrow to a name: 'tomorrow I will know Sardor and Kamola too'."
     },
 
-    // --- the agreement ------------------------------------------------------
-    CH2_RL_1: {
-      principle: "C2-004",
-      verdict: "good",
-      title: "One rule and its reason",
-      why: "Fourteen rules is service; one rule plus its reason is colour. And the strongest part is the handover — 'you tell me why' — because Jasur said it himself, in his own words, out loud to the room. The rule stopped being yours. That is why it will hold when you are not in the room.",
-      cost: "You give away part of the authority, on day one, which feels reckless. It is the most durable foundation available.",
-      alternative: "If there is no time, give the reason yourself — but still keep it to one rule."
-    },
-    CH2_RL_2: {
-      principle: "C2-008",
-      verdict: "weak",
-      title: "The wall keeps the rule and loses the reason",
-      why: "'The rules are on the wall' is correct and it works. They will follow the rule even when you are not there — out of fear rather than out of respect. Fear functions. It also turns the lesson into homework.",
-      cost: "Order without contact. Nobody asks you a question.",
-      alternative: "Read the wall rule aloud, then pick one: 'Why do you think this one exists?'"
-    },
-    CH2_RL_3: {
-      principle: "C2-004",
-      verdict: "ok",
-      title: "Warm, and unbounded",
-      why: "'Don't upset each other' is a good intention and a genuinely warm sentence. The problem is that every pupil draws the boundary differently. Warmth is right on day one — but warmth without a boundary becomes disorder, and you lose the lesson that same hour.",
-      cost: "You will have to install order later, and at that point it will read as coldness.",
-      alternative: "Add one precise edge to the warm sentence: '...and if someone does upset you, tell me.'"
-    },
-
-    // --- the credential -----------------------------------------------------
-    CH2_TK_1: {
-      principle: "C2-001",
-      verdict: "good",
-      title: "A credential cannot answer the question that is actually open",
-      why: "The credential is service: it proves your competence. What is needed on the first day is not competence but trust. Thirty seconds spent proving yourself are thirty seconds taken out of the room. And not solving the problem yourself is the harder half — the easiest thing available was to walk up and be brilliant.",
-      cost: "They do not know how good you are at maths. Some of them wanted to.",
-      alternative: "Do not hide it forever — drop it once, casually, at the end of the lesson, after they know you."
-    },
-    CH2_TK_2: {
-      principle: "C2-003",
-      verdict: "good",
-      title: "You showed the credential and redirected it",
-      why: "The hardest option, and the best. You did not hide yourself — and then you changed the address: 'this gave me nothing; one teacher gave me something, and she knew every name on day one.' The class did not hear 'how strong is he.' They heard 'who does he look at.'",
-      cost: "None. The sentence does not diminish you; it makes you a person.",
-      alternative: "If you would rather not mention the olympiad, keep the same shape with another origin: 'when I chose this job, one teacher was the reason.'"
-    },
-    CH2_TK_3: {
-      principle: "C2-008",
-      verdict: "weak",
-      title: "You solved it; they watched",
-      why: "Nobody is saying you cannot solve it — you solved it beautifully. The problem is that after a problem solved by you on the board, the class has done nothing and feels nothing. Spectating is good service and poor teaching.",
-      cost: "The room respects you and stays passive. Tomorrow they wait for you again.",
-      alternative: "If you start solving it, stop halfway: 'Who can finish it?'"
-    },
-
-    // --- the gift -----------------------------------------------------------
     CH2_GF_1: {
       principle: "C2-006",
-      verdict: "ok",
-      title: "The right thing, but only the need",
-      why: "He needed a notebook and you gave him one. That is good. But he received paper from you, not attention — and on the first day the difference is large. Paper can be bought; 'I saw you' cannot.",
-      cost: "He thinks you are kind and will not remember the day.",
-      alternative: "Give the notebook and add one sentence: 'Bekzod, you showed me your own method today. We continue tomorrow.'"
-    },
-    CH2_GF_2: {
-      principle: "C2-006",
       verdict: "good",
-      title: "Bekzod usuli",
-      why: "This is the hot dog. The cost is one notebook; the effect lasts a year. Guidara took a two-dollar street hot dog, plated it, and made it the most-remembered course of the night — because it was specific to that guest. You took Bekzod's method, gave it his name, and put it in front of the class. He is no longer 'the new boy': the room now contains one thing named after him.",
-      cost: "One notebook and one piece of chalk. That is all.",
-      alternative: "With no notebook it still works: write the method on a sheet, stick it to the board, put his name on it. The name and the board are the mechanism."
-    },
-    CH2_GF_3: {
-      principle: "C2-007",
-      verdict: "weak",
-      title: "'Later' is the promise that does not get kept",
-      why: "'Later' is the most-said and least-kept sentence in a first lesson. This boy has been waiting three weeks already. Another 'later' tells him nothing, however sincerely you mean it.",
-      cost: "He waits one more day — and this time he may stop waiting.",
-      alternative: "If you have no time, give an exact time: 'Five minutes after the bell. Will you wait?'"
+      title: "The promise was kept out of your own pocket",
+      why: "You kept the promise and absorbed the cost yourself — and, crucially, did not say so. They saw the gift; they did not see the sacrifice. A promise is only worth anything if the giver is dependable while it is inconvenient, and mentioning the inconvenience spends the gain.",
+      cost: "One of your own pens.",
+      alternative: "If it is not the first lesson, still do not narrate it. The room is trusted."
     },
 
-    // --- the last ten minutes ------------------------------------------------
-    CH2_WZ_1: {
-      principle: "C2-005",
+    CH2_GF_2: {
+      principle: "C2-006",
+      verdict: "bad",
+      title: "First promise, first hour, first failure",
+      why: "You saved one gift and lost the promise. On the first day, at the first opportunity. Rafe Esquith is blunt: promising a reward is already a problem, but the unforgivable version is breaking it — that is the thing that sours children on school and adults in general, not on you specifically.",
+      cost: "It cannot be bought back with forty minutes.",
+      alternative: "Give something else immediately, name the failure, and keep the next one without being asked."
+    },
+
+    CH2_GF_3: {
+      principle: "C2-004",
       verdict: "good",
-      title: "Precise evidence: 'twice'",
-      why: "A precise sentence with evidence in it: 'twice today.' She heard a description of something she did, not a title. Telling the pupil who runs the room that she is a good student means nothing — she already knows. She needed a different role, and you named it.",
-      cost: "Nothing. Two sentences.",
-      alternative: "Pupils like this often see themselves as enforcers. Say: 'You manage this room. I need that. Let's do it together.'"
+      title: "Two promises kept at once",
+      why: "Nafisa earned her gift; Bekzod had no notebook. You honoured both, and when someone asked 'why him?' the answer was visible without a lecture. One size fits one is not a slogan here — it is the observation that the same gift to the wrong person is worse than no gift.",
+      cost: "One gift and one sentence.",
+      alternative: "If you only have one thing, give it to the earned answer and fix Bekzod tomorrow — but fix it tomorrow."
     },
-    CH2_WZ_2: {
-      principle: "C2-005",
-      verdict: "weak",
-      title: "A title, not a gift",
-      why: "'You are a very good student' is something she hears every day. Generic praise is a bonus, not a gift. And she had not asked you a question — she was looking for an answer. You gave her a label instead.",
-      cost: "She tested you and you did not pass. She will remember that.",
-      alternative: "Convert the label into an observation: 'You stopped the class twice today. I saw it.'"
-    },
-    CH2_WZ_3: {
+
+    CH2_WZR_1: {
       principle: "C2-003",
       verdict: "good",
-      title: "You gave her question back",
-      why: "'What did you see?' is a brave move: handing authority to a twelve-year-old an hour into your first day. It treats her not as your watcher but as your interlocutor, and that is the thing she was asking for without asking.",
-      cost: "She may answer, and you may not like the answer. That is data too.",
-      alternative: "If you are not ready to hear it, ask in writing and answer tomorrow."
+      title: "Name the leadership instead of taking it",
+      why: "Telling a child that you noticed they lead is not flattery, it is accuracy — and it is safer than the alternative, which is getting into a quiet contest with her. She asked a hard question and got a straight answer.",
+      cost: "Two minutes at the door.",
+      alternative: "If she does not ask, say it anyway. It costs one sentence."
     },
+
+    CH2_WZR_2: {
+      principle: "C2-008",
+      verdict: "ok",
+      title: "A promise about the next lesson instead of this one",
+      why: "'Next time I will explain more' is honest and understandable, but it does not answer 'why were you silent'. Leaders notice a question being redirected, and they decide something when they notice.",
+      cost: "One minute.",
+      alternative: "Answer the question that was asked, even briefly, before promising anything."
+    },
+
     CH2_WD_1: {
-      principle: "C2-005",
+      principle: "C2-004",
       verdict: "good",
-      title: "You named what she was doing",
-      why: "You called her explaining 'teaching' — probably something she has never thought about herself. And you brought evidence: 'this morning too.' Naming one pupil's strength out loud on day one tells the whole room what is valued here, which is worth more than any rule on the wall.",
-      cost: "Nothing.",
-      alternative: "Use her next lesson: 'Dilnoza, you explain today. I'll watch.'"
+      title: "Reward the nerve, not the answer",
+      why: "You did not ask whether she was right; you told her that a wrong answer gave with courage is the achievement. Most teachers praise correct answers and are left with children who already had confidence. This is one size fits one — for the girl who needs permission far more than a tick.",
+      cost: "Two minutes, and someone in the room heard it.",
+      alternative: "If it is wrong, fix it in front of the room, so courage is seen to be paid, not punished."
     },
+
     CH2_WD_2: {
       principle: "C2-008",
       verdict: "weak",
-      title: "You saw the gap, not the strength",
-      why: "She had not solved it, and saying so is accurate. But she was explaining — she was teaching. You missed the strength and reported the shortfall. She came to you for help and got a verdict.",
-      cost: "Tomorrow she will still explain, and she will not tell you.",
-      alternative: "Say both, in that order: 'You haven't got the answer yet, and your explaining is excellent. Let's do both.'"
+      title: "The reasonable answer closed her",
+      why: "'If you are sure, say it' sounds supportive and puts the risk back on the thirteen-year-old. She had already told you she was not sure; that was the courage. You answered it with a condition.",
+      cost: "She will not open like that again this term.",
+      alternative: "'Say it. I will take the hit if it is wrong — I am the one who asked.'"
     },
+
     CH2_WJ_1: {
       principle: "C2-004",
       verdict: "good",
-      title: "You gave him his own sentence back",
-      why: "'Tomorrow you say it' is almost a transfer of authority, and it hardens the boundary by making it his rather than yours. Punishing the funny pupil is easy. The hard thing — and the useful thing — is putting that energy to work in the room.",
-      cost: "He may abuse it. In the first week the risk is worth taking.",
-      alternative: "If he oversteps, take it back without making it personal: 'Remember the agreement? You wrote it.'"
-    },
-    CH2_WJ_2: {
-      principle: "C2-001",
-      verdict: "weak",
-      title: "A win, with him behind you",
-      why: "You put him down and he will sit quietly. But now he laughs behind your back rather than in front of you, and the room measures who is strong by that laugh.",
-      cost: "The room is quiet, and the quiet is working against you. Tomorrow brings another test.",
-      alternative: "Instead of the put-down, hand him the question: 'Jasur, you tell me — why should we take turns?'"
-    },
-    CH2_WN_1: {
-      principle: "C2-004",
-      verdict: "good",
-      title: "A safe channel",
-      why: "One approach does not fit everyone. For Nafisa, 'in front of the class' is frightening and 'to you' is safe. You read her and chose the form of service that fit. That is how trust starts: small, protected, once.",
-      cost: "A minute and a bend of the knee. That is all.",
-      alternative: "Next step: 'Tell your neighbour, then tell me' — widening the channel gradually."
-    },
-    CH2_WN_2: {
-      principle: "C2-004",
-      verdict: "bad",
-      title: "You put her fear on display",
-      why: "She heard her own voice once and did not like it. Next time she will whisper to her neighbour again, because that works. You showed the class her largest fear and called it participation.",
-      cost: "It cannot be taken back. Next lesson she will be invisible again.",
-      alternative: "Do not compel. Go and stand beside her and ask quietly — same result, no exposure."
-    },
-    CH2_WN_3: {
-      principle: "C2-003",
-      verdict: "weak",
-      title: "The answer moved; the pupil did not",
-      why: "The answer travelled through the class and the lesson worked. But Nafisa did not look at you once in forty-five minutes, and her invisibility was confirmed again. Invisible in the first week becomes a habit for the year.",
-      cost: "One pupil can spend a whole year unseen.",
-      alternative: "At minimum use her name without demanding an answer: 'Nafisa, do you agree?'"
-    },
-    CH2_WB_1: {
-      principle: "C2-003",
-      verdict: "good",
-      title: "'I actually want to learn it'",
-      why: "The strongest sentence a teacher can say on day one is that they are still learning. It shares authority, and it gives the pupil the one thing he actually needs: a reason to come back tomorrow.",
-      cost: "You are no longer 'the teacher who knows everything'. That is an improvement.",
-      alternative: "Scale it to the class: 'Every week, one of you shows us your method.'"
-    },
-    CH2_WB_2: {
-      principle: "C2-006",
-      verdict: "ok",
-      title: "Care, aimed at the object",
-      why: "'Do you have a notebook now?' is care, aimed at the object. He does not want to talk about the notebook — he wants to talk about himself. The question puts him back in the role of 'the boy who needed paper'.",
-      cost: "He says 'rahmat' and leaves. The thing he wanted to say stays unsaid.",
-      alternative: "Settle the object once, then move on: 'Notebook's handled. Now tell me — what was your old school like?'"
-    },
-    CH2_WT_1: {
-      principle: "C2-006",
-      verdict: "good",
-      title: "You remembered a sentence from the morning",
-      why: "The offer costs nothing, and it proves you heard him — one sentence at 8:52, remembered at 9:40. No praise does that. And you did not invite him into the group; you went with him. That is different: he was not selected, he was recognised.",
-      cost: "Ten minutes in the morning, five days a week.",
-      alternative: "If daily is impossible, fix one day: 'Thursday — bread together.'"
-    },
-    CH2_WT_2: {
-      principle: "C2-004",
-      verdict: "bad",
-      title: "You put his shame in front of the class",
-      why: "Perhaps the shoes are old. Perhaps he is ashamed of his feet. 'Take them off' shows the class his shame. The notebook question and this one are the same mistake: you saw the need and missed the person.",
-      cost: "He will never tell you anything about the canteen again.",
-      alternative: "Say nothing. Wear the same kind of shoes yourself — that says more than a sentence."
+      title: "Do not punish the test, and do not call it a joke",
+      why: "He asked whether you were upset; the honest answer was no, with a reason — you had read the register twice. That neither humiliates him nor pretends the block was fine. The cheapest form of respect is telling someone that they were understandable.",
+      cost: "Twenty seconds.",
+      alternative: "If he does not ask, an opening: 'you tested me. That was fair — I was new.'"
     },
 
-    // --- the exit -----------------------------------------------------------
-    CH2_EX_1: {
-      principle: "C2-007",
-      verdict: "good",
-      title: "The frame closed",
-      why: "A first day ends the way the year will begin. 'See you tomorrow' is not a goodbye, it is an invitation. And standing at the door mirrors how you started — you opened the frame and you closed it.",
-      cost: "Two minutes, for fourteen pupils.",
-      alternative: "If you cannot manage every name, use eye contact for the ones you do not know yet. It still works."
+    CH2_WJ_2: {
+      principle: "C2-008",
+      verdict: "ok",
+      title: "Fair, and it closes the boy",
+      why: "The rule is reasonable and will hold. But you answered the test with a verdict. He will behave and will not trust you, and the loss is the one thing you cannot set a rule about.",
+      cost: "One clean lesson, one closed door.",
+      alternative: "State the rule for tomorrow and leave the door open for today."
     },
-    CH2_EX_2: {
-      principle: "C2-007",
+
+    CH2_WN_1: {
+      principle: "C2-005",
+      verdict: "good",
+      title: "Praise privately for the pupil who fears the room",
+      why: "You gave the compliment where nobody could hear it. For a quiet pupil who is afraid of being wrong in public, public praise is a threat, not a reward. Specific and private is the same principle as specific and public, cut to the person.",
+      cost: "Ten seconds.",
+      alternative: "If others are listening, name the work and not the person."
+    },
+
+    CH2_WN_2: {
+      principle: "C2-005",
       verdict: "weak",
-      title: "You wiped his name off the board",
-      why: "Tidiness is service. But 'Bekzod usuli' was wiped, so the most important thing that happened today left no trace. The last impression was cleanliness, not you.",
-      cost: "Tomorrow the board is empty — and the pupil has no reason to come back and look.",
-      alternative: "Clean everything except one line: 'Bekzod usuli — continues tomorrow.'"
+      title: "The right words to the wrong person",
+      why: "Good intention, wrong instrument. You praised her in front of the room and gave her a weight the other fourteen cannot see. The praise was correct and the audience was wrong.",
+      cost: "It may cost you her hand for weeks.",
+      alternative: "Praise the model, not the pupil: 'this answer works because it starts with a guess.'"
+    },
+
+    CH2_WB_1: {
+      principle: "C2-004",
+      verdict: "good",
+      title: "Do not help him — join him",
+      why: "You did not give the new boy support, you gave him a partnership. Help preserves rank; partnership burns it. For a pupil three weeks into a new school, being someone who can give a teacher three names is worth more than being the one who needs three names.",
+      cost: "Two minutes and a promise you have to keep tomorrow.",
+      alternative: "If you cannot promise tomorrow, promise something smaller and keep it."
+    },
+
+    CH2_WB_2: {
+      principle: "C2-008",
+      verdict: "weak",
+      title: "A true sentence that did nothing",
+      why: "'You will get used to it' is a sentence about time, not about this child. It is not unkind and it is not useful; he asked a person for something and received a forecast.",
+      cost: "He left alone again.",
+      alternative: "Ask one question you cannot answer: 'which lesson do you hate most so far?'"
+    },
+
+    CH2_WT_1: {
+      principle: "C2-003",
+      verdict: "good",
+      title: "Repeat his first sentence back to him",
+      why: "You remembered the only thing he told you and made it an invitation. That is the cheapest hospitality on the list — proving you heard someone — and it is the one that costs most, because remembering is work.",
+      cost: "Thirty seconds, tomorrow at 8:30.",
+      alternative: "If he says no, still be there. The point is that you said it."
+    },
+
+    CH2_WT_2: {
+      principle: "C2-008",
+      verdict: "ok",
+      title: "Reasonable, and he will remember it",
+      why: "'We will talk tomorrow' is polite and true and probably will not happen, because tomorrow has its own problems. He offered you his one trust and it was postponed, unaddressed.",
+      cost: "One minute of politeness.",
+      alternative: "Put a time in it. 'Tomorrow after second period, right here.'"
+    },
+
+    CH2_HK_4: {
+      principle: "C2-004",
+      verdict: "good",
+      title: "You dropped your own plan for their question",
+      why: "Dilnoza told you in the corridor that the class already had an unsolved problem from their last teacher. You put your own question away and used theirs. That is one-size-fits-one applied to a lesson plan: the room already had a question, and a teacher who insists on his own is serving the plan, not the people.",
+      cost: "Your prepared hook, and some control over where the lesson goes.",
+      alternative: "If their problem is too big for the time you have, take the first step of it and set the rest as the next lesson."
     },
     CH2_EX_3: {
       principle: "C2-007",
-      verdict: "ok",
-      title: "Honest, but incomplete",
-      why: "The tiredness is real and does not need hiding. But 'we will continue tomorrow' promises nothing yet — they do not know who will be there or what will happen. A more precise sentence costs no extra time.",
-      cost: "They come back tomorrow with no reason. The reason is your sentence.",
-      alternative: "'I'm tired, and tomorrow we finish this problem. Look at the board before you go.' — both honest and promising."
+      verdict: "good",
+      title: "You left their sentence on the board",
+      why: "Writing a pupil's answer on the board and refusing to erase it makes the last minute belong to them rather than to you. Tomorrow's first sentence is the one a pupil said, not the one you prepared. The closing exchange is weighted more heavily than anything in the middle of the service.",
+      cost: "Ten seconds and your board.",
+      alternative: "If you must clear it, photograph it and put it back up tomorrow."
+    },
+    CH2_EX_1: {
+      principle: "C2-007",
+      verdict: "good",
+      title: "You waited, and the room spoke",
+      why: "Ten uncomfortable seconds bought the most valuable section of the lesson: Bekzod, who had been silent all day, said the answer and Zarina said it was theirs, not yours. The closing minute is weighted more heavily than the middle of the service, and you did not spend it on your own summary.",
+      cost: "Ten seconds of silence you had to hold.",
+      alternative: "If nobody speaks, ask a smaller question rather than closing it yourself."
     },
 
-    // --- minigame choice ids -------------------------------------------------
+    CH2_EX_2: {
+      principle: "C2-007",
+      verdict: "weak",
+      title: "The right summary, delivered by the wrong person",
+      why: "Your summary was accurate and became what they left with. That is the problem: the only part of a lesson a pupil rehearses is the ending, and they rehearsed yours instead of their own.",
+      cost: "One minute of clean, comfortable teaching.",
+      alternative: "Keep the summary, but make them say it first, even badly."
+    },
+
     CH2_MG_NINETY_WIN: {
       principle: "C2-001",
       verdict: "good",
-      title: "The first ninety seconds worked",
-      why: "The room came out both warm and orderly. That combination is not accidental: warmth slides into disorder and order slides into coldness very easily. Holding both at once is the whole job of the first ninety seconds.",
-      cost: "Three moves were chosen and the rest were not used. On day one that is correct.",
-      alternative: "Try one of the unused moves next lesson — the self-deprecating joke, for instance."
+      title: "Warm and ordered at the same time",
+      why: "The door-greeting package exists to do exactly this: greet each pupil by name, say the correction before the disruption, have the work already waiting. None of it is impressive. The measured effect on engaged time in the randomised trial is what is impressive.",
+      cost: "Ninety seconds.",
+      alternative: "If you only have one of these, take the greet-by-name."
     },
+
     CH2_MG_NINETY_LOSE: {
       principle: "C2-001",
       verdict: "weak",
-      title: "The room read you; you did not read the room",
-      why: "The first impression came out differently from what you intended. The good news is that it can be repaired in the remaining forty minutes — if you name it. The worst option is to keep going as if nothing happened.",
-      cost: "Ninety seconds are gone. The lesson is not.",
-      alternative: "Name it and ask: 'I think I started that badly. How should I have started?' It costs you nothing."
+      title: "You lost one of the two axes",
+      why: "Warmth without order ends in chaos; order without warmth ends in compliance. A first impression is not a speech, it is a combination — and it is nearly impossible to correct once the room has decided.",
+      cost: "The rest of the lesson carrying it.",
+      alternative: "Recover one axis deliberately: choose order now, warmth at the exit."
     },
+
     CH2_MG_NAMES_WIN: {
       principle: "C2-003",
       verdict: "good",
-      title: "One real thing beside each name",
-      why: "Collecting names takes time; collecting one true thing about each pupil takes longer and is what gets remembered. You came out with both, which is a store you will spend all week.",
-      cost: "An extra ten seconds per pupil.",
-      alternative: "If you run out of time, collect the facts during the lesson by watching, and write them down after."
+      title: "Divided attention, not scattered attention",
+      why: "Fourteen pupils, six cards. You cannot remember fourteen, so you chose which six to actually use. Divided attention is honest and it works: the pupil who was seen values it more than the ones who were counted.",
+      cost: "Six cards.",
+      alternative: "Write the six facts down. Memory is not the point; using them tomorrow is."
     },
-    CH2_MG_NAMES_LOSE: {
-      principle: "C2-002",
-      verdict: "weak",
-      title: "The names stayed a list",
-      why: "The names were collected but did not become people. A name plus a fact equals a person; a name alone equals a register, and nobody on a register is visible.",
-      cost: "You have fourteen names and fourteen strangers.",
-      alternative: "Next lesson, one question per pupil and write the answer down — fourteen questions, five minutes."
-    },
-    CH2_MG_COMPLIMENT_BEST: {
-      principle: "C2-005",
-      verdict: "good",
-      title: "Specific, owned, with evidence",
-      why: "The compliment had three parts: who, what they did, and when. That is what turned it into a gift — a sentence that could only belong to that one pupil. Guidara's measure is not what it cost you but what it made them feel.",
-      cost: "One observation. Nothing else.",
-      alternative: "Make it a habit: three a day, each to a different pupil."
-    },
-    CH2_MG_COMPLIMENT_OK: {
-      principle: "C2-005",
-      verdict: "ok",
-      title: "Some specific, some generic",
-      why: "The specific compliments landed; the generic ones became habit and did nothing. The difference looks small and is not: pupils know within a second whether a sentence is about them or about everyone.",
-      cost: "The generic compliments cost time and returned nothing.",
-      alternative: "One test before every compliment: 'Could this sentence be about anyone else?' If yes, do not say it."
-    },
-    CH2_MG_COMPLIMENT_WRONG: {
-      principle: "C2-005",
-      verdict: "weak",
-      title: "The praise was the same for everyone",
-      why: "The same sentence to three different pupils belongs to none of them, and they see that immediately. The repair is cheap: it takes one observation, not a different personality.",
-      cost: "Praise was spent and had no effect.",
-      alternative: "Pick one pupil today and watch only them. Say the specific sentence tomorrow."
-    }
-  },
 
+    CH2_MG_NAMES_LOSE: {
+      principle: "C2-004",
+      verdict: "weak",
+      title: "Guessing at fourteen people",
+      why: "You tried the same fact on the wrong person. That is not a small error: one size fits one is the observation that the same gift, or the same sentence, becomes an insult when it is delivered to someone it does not fit. Admitting the error is worth more than the error costs.",
+      cost: "Two wrong facts to undo.",
+      alternative: "Use fewer pupils, but use them correctly."
+    },
+
+    CH2_MG_GIFT_BEST: {
+      principle: "C2-004",
+      verdict: "good",
+      title: "The right thing to the right person",
+      why: "Nothing about the gifts was expensive. The whole point is that they were fitted to the people — the boy without a notebook gets the notebook, the girl who has done every problem gets the pencil, the boy who eats alone gets something to give away.",
+      cost: "Six cheap items.",
+      alternative: "If you only have one, give it to the pupil nobody else would choose."
+    },
+
+    CH2_MG_GIFT_OK: {
+      principle: "C2-004",
+      verdict: "ok",
+      title: "Mostly fitted",
+      why: "Some pairs were right and some were a guess. Fitted gifts teach the room that you are paying attention; guessed gifts teach them you are being kind at random. Both feel good to give and only one of them is remembered.",
+      cost: "One or two pairs you cannot defend.",
+      alternative: "Keep one gift back for tomorrow, when you know more."
+    },
+
+    CH2_MG_GIFT_WRONG: {
+      principle: "C2-004",
+      verdict: "weak",
+      title: "A gift, and a question",
+      why: "A gift to the wrong person is not generous, it is confusing: the pupil asks 'why me?' and you have no answer, because there was no reason. The gift was real; the attention behind it was not.",
+      cost: "The gifts you gave, and the doubt.",
+      alternative: "Name the mistake out loud. That is the only thing that converts it into teaching."
+    },
+  },
   // --------------------------------------------------------------------------
   // 4. ARCHETYPES — bands must not overlap, and must stay inside -1..2.
   // Chapter 1 ships its own array; never merge the two (AGENTS.md §6.2).

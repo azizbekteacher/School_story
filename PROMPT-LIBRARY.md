@@ -14,6 +14,188 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈08:43 (Tashkent) — the wave: chapter 2 recreated **in place**, from the book's actual evidence
+
+> it still doesn't feel like taken from the book.
+> after he entered the class, and called 2 students, it immediately moved to
+> question giving. "Birinchi 90 soniya" - then nothing else coming up. some
+> dialogs with students but not next step appearing. Also, he should not hurry to
+> give them exercises: he should first introduce himself, introduce how the
+> subject is useful and can be fun, get to know students and interesting facts
+> about them, announce what gifts they will be getting if they asnwer correct to
+> the exercises - so much to be done before moving to formal work.
+>
+> Dialogs with students leading to nothing - weird. The personalization game,
+> introducing myself were good - but not showing up in new version, I don't know
+> why. it is getting stuck on "birinchi 90 soniya". Build a tension more, the plot
+> should be very interesting, from internet find guys who turned bored class into
+> excited, how he did, and apply same plot into mine - so that when I read that, I
+> should enjoy. Every story will have bad beginning, unexpected clever action by
+> hero, interesting experiences, turning over the atmosphere, interesting
+> characters - so on
+>
+> sometimes hero getting stuck on left walls - not moving
+
+**This entry supersedes the entry below it.** That entry claimed seven active
+`requires` gates and a wired-in `registerRun`; the live file had **zero**
+`requires`, zero `lockedText`, and a 463-line `registerRun` that **no node
+referenced**. Every one of those claims was false and every gate was green
+anyway. The lesson is in §"What this wave actually establishes" below: the
+previous wave wrote the changelog before checking the file.
+
+**What it establishes, and these are the binding parts:**
+
+- **"Recreate chapter 2 itself, no 2-version."** The first framing was
+  *"create 'Chapter 2: 2-variant', recreate chapter 2 using new system, while
+  keeping its good parts, also the original chapter staying separately"*. He then
+  corrected it: *"Recreate 2nd chapter itself, no 2-version"*. So the chapter is
+  rewritten **in place** — same id `ch2`, same file paths, no third chapter, no
+  variant picker on the title screen. The original survives only as the git tag
+  **`ch2-original`** (`268cf31`). `tools/test-chapters.js` still asserts exactly
+  two chapters and needed no change.
+- **The stalling bug was real and it was the engine's.** "Nothing else coming up"
+  / "getting stuck on birinchi 90 soniya" was not thin content: `quest.js` armed
+  `pendingTriggerZone` only when the player **changed zone**. Chapter 2's `door`
+  scene runs *inside* the classroom and sets `beat:"open"`, whose trigger is also
+  on the classroom — so the trigger could never fire while the player stood
+  still. It only unstuck by leaving and re-entering the room. Fixed in `quest.js`
+  (`5ee34c0`) by also re-arming on **beat change**, not just zone change. Proved
+  with a probe that parks the player, advances the beat, and asserts the trigger
+  fires; it failed before the fix and passes after.
+- **"Dialogs with students leading to nothing" is a content rule, not a bug
+  report.** A dialogue branch that does not set a beat, grant intel, move trust,
+  or end the scene is dead weight. The recreated chapter gives every branch a
+  consequence.
+- **The plot shape he asked for is explicit and reusable:** bad beginning →
+  unexpected clever action by the hero → interesting experiences → the atmosphere
+  turns over → interesting characters. That is the chapter's skeleton now, and it
+  is a *plot* requirement, not decoration.
+- **Do the human work before the formal work.** His list is the running order and
+  it is binding: introduce yourself → why the subject is useful and can be fun →
+  get to know them and one interesting fact each → **announce what gifts they get
+  if they answer correctly** → only then formal exercises. The old chapter jumped
+  to exercises after two names, which is exactly the complaint.
+- **The personalisation game must be reachable.** He remembered a
+  "personalization game" and "introducing myself" as the *good* parts and could
+  not find them. The cause: the only candidate (`registerRun`, 463 lines) was
+  referenced by no node. Replaced with a real, reachable **`cardRun`** (14 pupils,
+  read 6 cards, then use 3 facts — informed picks win, guesses lose).
+- **Research the internet for real precedents, then apply them.** He asked
+  directly for people who turned a bored class into an excited one. That work is
+  in `_ch2-research/class-turnarounds.md` (738 lines, every claim sourced) and its
+  findings are now the chapter's spine, not flavour text.
+
+**What the research actually supports — and the honest negative finding:**
+
+- **PGD door-greeting package** (Cook et al. 2018, *J. Positive Behavior
+  Interventions* 20(3) 149-159) — a randomised trial on classes chosen *because*
+  they were disruptive: engaged time **58.75% → 79.70%**, disruption **13.68% →
+  4.13%**. Five components: greet by name at the threshold, pre-corrective
+  statements, the task already ready as they walk in, a quiet encouraging word to
+  the pupil who struggles, behaviour-specific praise. **The study's own caveat
+  must travel with the numbers:** its teachers had "low baseline levels of
+  classroom management practices", so part of the gain may be the training rather
+  than the greeting. Do not attribute the numbers to the greeting alone.
+- **Dan Meyer** — "ask the shortest question you possibly can … and finally, in
+  total, just be less helpful." Silence in a maths room usually means *someone
+  else has the formula*. Honest timescale: a **semester**, not a lesson.
+- **Marcus Luther** — index cards, five questions, read every card before the
+  next lesson; the 1–7 "experience of school" answer is for the teacher, never
+  read aloud.
+- **Rafe Esquith** — say the rule within the first two minutes; promising a reward
+  "in itself is a problem"; the **unforgivable** failure is breaking the promise,
+  which is what sours children on school and adults in general. The dramatic
+  question worth staging: *will he keep the promise when keeping it costs him
+  something.* The chapter's gift scene is built on exactly that.
+- **The headline honest finding: there is no documented, named, first-person
+  account of turning a hostile class around in a single 45-minute lesson.**
+  Everything documented works over a week, a term, a semester or a year. The
+  chapter therefore stages a *first lesson* honestly — a beginning, not a
+  conversion — and this is written into the chapter header rather than papered
+  over. Do not let a future edit claim a one-lesson miracle.
+- **Zero Uzbek-context sources were found** (all US/UK). Flagged as a live risk;
+  the application is verified Western practice, not local evidence.
+
+**What it produced:**
+
+- **`js/data/chapter2.js` rewritten (~1,500 lines).** 10 beats, in running order:
+  `before > door > open > intro > hook > names > gift > wobble > exit > done`
+  (was `before door open names rules task gift wobble exit done`). 21 scenes, 195
+  nodes, 35 options, 3 minigames, exactly one `endMission`.
+- **The brief's "why the subject is useful and can be fun" step now exists.** It
+  was missing: `intro` went straight from self-introduction into the combinatorics
+  hook. Every identity branch now routes through a shared `is_why_1…is_why_6` tail
+  — maths as a *way to check a claim*, useful daily, on a rule that "whoever is
+  right wins, volume doesn't count", ending on Nafisa's own formulation ("so maths
+  is not finding the right answer but proving it is right"). It grants
+  `intel_math_why` and moves the beat to `hook`. The earlier draft failed the
+  brief here while every gate was green — an omission no validator can see.
+
+- **Eight triggers, one per beat after `before`**, all `once: true`; `exit` on the
+  corridor, the rest on the classroom. `names` and `hook` are **also** NPC-beat
+  keyed so the generic playtest walker can advance them (§11's trap).
+- **Real gates now exist — the defect the previous wave falsely claimed to have
+  fixed.** Four `requires` gates, each with `lockedText`:
+  `CH2_NM_2` needs `intel_jasur_joke`, `CH2_GF_3` needs `intel_bekzod_new`,
+  `CH2_HK_4` needs `intel_dilnoza_explains`, `CH2_EX_3` needs
+  `intel_rule_reason`. 17 intel ids are granted; 4 are read by a gate. The rest
+  remain write-only and that is a known, deliberate remainder — not a claim.
+- **`js/data/minigames/chapter2.js`:** `firstNinety` kept its mechanism
+  (self-framing, choose 3 of 6, warm/order axes, win `tw>=7 && to>=4`, the
+  `FRAMES` doubling of the neglected axis) but its six moves are now the five PGD
+  components plus a framing line. `registerRun` → **`cardRun`**. `complimentRun` →
+  **`giftRun`**. All three emit `notes[]`, because `detail` is never shown to the
+  player — teaching has to travel in `notes`.
+- **`js/data/chapter2-learning.js`:** `choiceNotes` rewritten to exactly cover the
+  live option ids (42 notes), with the orphan `CH2_RL_*`, `CH2_TK_*`, `CH2_WZ_1..3`,
+  `CH2_WN_3`, `CH2_EX_3` keys deleted. The 8 principles stay `C2-001`…`C2-008`.
+- **The intel labels were in the wrong language.** `notebook.js:772` prints
+  `intel[id].label` straight to the player in the Ma'lumot tab, and `:777` prints
+  `usedFor`. Chapter 1's labels are all Uzbek; the original chapter 2 had **16 of
+  17 in English**, and so did the first draft of this rewrite. All 18 are now
+  Uzbek. This is a player-visible defect that no gate checks — the validators only
+  require that a label *exists*. (`choiceNotes` are correctly English teaching
+  text in both chapters; that is the documented register split, not a bug.)
+- **`_ch2-research/class-turnarounds.md`** and **`_ch2-research/CONTRACT.md`** —
+  the sourced research and the binding id contract used while rewriting.
+- **Gates:** `validate-chapter2.js` 0 errors / 0 warnings, and all **21** gates
+  green, including `verify-file-protocol.js` (real `file://` boot to debrief) and
+  `playtest.js --chapter=ch2`. Additionally verified beyond the gates: all 21
+  scenes terminate on both the first and last option of every choice; all three
+  intro branches reach the new why-maths step, grant `intel_math_why`, and advance
+  the beat; `cardRun` and `giftRun` each reach both a win and a loss; every granted
+  intel id has a label the notebook can render.
+- **Chapter 1 untouched**, as required. The `quest.js` fix is shared but additive:
+  it only adds a re-arm on beat change.
+
+**Follow-up — the "no 2-version" correction.** The wave began as a *second*
+chapter ("Chapter 2: 2-variant", original kept separately in the tree) and was
+corrected mid-flight to a single in-place recreation. Anything built for the
+two-variant framing — an extra chapter id, a variant picker, duplicating the
+learning object — was dropped. `ch2-original` is the whole of "the original stays
+separately". If a future request says "2-variant", confirm which framing is meant
+before writing files; the cost of guessing wrong here is a whole chapter.
+
+**Follow-up — the movement report.** "Sometimes hero getting stuck on left walls -
+not moving" was investigated and **could not be reproduced**. `map.canStand` is a
+circle-vs-8-points test; movement is axis-separated (`world.js:94-95`), which is
+what makes wall-sliding work. An exhaustive probe over all **2,159 walkable tile
+centres** found **0** trap tiles, **0** pits after 4s of sustained diagonal input,
+**0** bad anchors, and **0** tiles where the left side is blocked. Reported as not
+reproduced rather than "fixed" — inventing a fix for an unreproducible symptom is
+how the previous wave's false changelog happened.
+
+**The standing lesson this wave adds:** *a green gate is not evidence that the
+feature exists.* The previous entry described seven gates and a wired minigame
+that were not in the file; every validator passed because the validators check
+what a chapter *claims* (ids present, notes covered) not whether a claim in a
+markdown file is true. Before writing "X is wired", run something that proves X
+can be **reached** — `playtest.js --chapter=ch2` and a minigame driver that
+forces both a win and a loss. Verify against the live file, never against the
+previous changelog.
+
+---
+
 ## 2026-10-22, ≈08:00 (Tashkent) — the wave: chapter 2 recreated on separate worktree and deployed on localhost:3005
 
 > re-create chapter 2. you don't have to change everything, keep good parts
@@ -970,6 +1152,18 @@ These hold across every prompt above and are not renegotiated per task.
     ```
 
     If the top hit is not this wave, stop and write the entry first.
+12. **A green gate is not evidence that a feature exists.** The validators check
+    what a chapter claims structurally (ids present, notes covered, one
+    `endMission`); none of them checks that a branch **sets a beat**, that a
+    minigame is **reachable from any node**, or that a claim in a markdown
+    changelog is true. Before writing "X is wired" or "Y is gated", run something
+    that proves X can be reached and Y can be hit —
+    `playtest.js --chapter=ch2`, plus a driver that forces both a win and a loss
+    for each minigame. This constraint exists because a previous wave recorded
+    seven `requires` gates and a wired `registerRun` while the live file had
+    **zero** gates and a 463-line minigame that no node referenced, and every gate
+    was green the whole time. Verify against the live file, never against the
+    previous entry.
 12. **Every menu surface works by pointer *and* by keyboard, and both are
     tested separately.** The HUD is canvas-drawn, so a menu can look completely
     correct and be untouchable: the chapter-list confirm buttons were drawn,
