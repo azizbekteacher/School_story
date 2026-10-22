@@ -1,0 +1,11 @@
+# Local Wrangler state: the local D1 database, caches, and dev artefacts.
+# Never committed — it is machine-local scratch, and may contain session rows.
+.wrangler/
+.miniflare/
+
+# Local dev values (the root .gitignore also lists worker/.dev.vars)
+.dev.vars
+
+# Node scratch
+node_modules/
+*.log

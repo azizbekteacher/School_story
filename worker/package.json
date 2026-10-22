@@ -1,0 +1,12 @@
+{
+  "name": "school-story-worker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Account and cloud-save backend for School_story. No dependencies.",
+  "scripts": {
+    "test": "node test/run.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}

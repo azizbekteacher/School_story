@@ -1,0 +1,55 @@
+#:schema node_modules/wrangler/config-schema.json
+# School_story account + cloud-save Worker.
+#
+# Non-secret configuration lives here and is committed. Secrets never do:
+# this Worker needs exactly one secret (see README.md step 4).
+#
+#   npx wrangler secret put GOOGLE_CLIENT_ID   # the web client id
+#
+# Why GOOGLE_CLIENT_ID is a secret rather than a var: the Worker only needs it
+# to compare against a token's `aud` claim, the browser learns it from
+# GET /auth/config, and keeping it out of the repository means a leaked repo
+# cannot be mistaken for a working configuration. It is not confidential in the
+# cryptographic sense — the value is public by nature — but treating it as a
+# secret keeps all deployment-specific values in one place and out of git.
+
+name = "school-story-account"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+# ----------------------------------------------------------------- D1
+# Replace REPLACE_WITH_D1_DATABASE_ID with the `database_id` printed by:
+#   npx wrangler d1 create school-story-db
+[[d1_databases]]
+binding = "DB"
+database_name = "school-story-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# --------------------------------------------------------------- vars
+[vars]
+# Comma-separated exact origins, scheme and port included. `*` is accepted as
+# the port component (any port), which is what makes local dev on :8000,
+# :5000, :3000 all work without editing this file.
+#
+# GitHub Pages origin: https://azizbekteacher.github.io
+# Local dev origins:    http://127.0.0.1:*  and  http://localhost:*
+ALLOWED_ORIGINS = "https://azizbekteacher.github.io,http://127.0.0.1:*,http://localhost:*"
+
+# `true` on the deployed Worker. Set to "false" only in .dev.vars when
+# developing against `wrangler dev` over plain HTTP, because browsers drop a
+# `Secure` cookie on an insecure connection.
+COOKIE_SECURE = "true"
+
+# Uncomment to pin SameSite instead of letting the Worker choose:
+#   localhost -> localhost            SameSite=Lax  (default, strongest)
+#   GitHub Pages -> *.workers.dev     SameSite=None; Secure (required)
+# COOKIE_SAMESITE = "Lax"
+
+# --------------------------------------------------------------- dev
+# `wrangler dev` reads non-secret local values from `.dev.vars`
+# (git-ignored, see .dev.vars.example). Production values come from
+# `wrangler secret put`, never from this file.
+
+[observability]
+enabled = true

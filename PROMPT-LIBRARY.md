@@ -14,6 +14,96 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈04:45 (Tashkent) — the wave: ship it, account for it, and make it playable on a phone
+
+> First, create a plan.
+> Connect this project to github, repository: School_story , github details are in
+> C:\Users\bluep\Tilsevar-V2 - my other project. Use that github account
+> Also add account creation process via google. I want to use it via Cloudflare
+> workers. it should remember my account and data. Account creation and memory
+> details are also in Tilsevar-V2 folder
+> This game should also be played in mobile
+> Create AGENTS.md for future models, with essential details
+> Create chapter-creation-guide md for future models.
+> Make each chapter playable from get-go
+> Move mini map to further right, so that it doesn't cover the playable area
+> Add copy button to every message
+> Add "Xulosalar" tab on menu. It should just describe the insight on existing
+> interactions. its the whole point of chapter: what insights does the chapter
+> want to teach. Such as "O'ta akademik bo'lmaslik" "Birgalikda mashg'ulot
+> qilish" paired with definitions, in uzbek. Make whole menu uzbek.
+> Add menu button on top left, which is the current overview window shown at
+> chapter end
+> IN Menu, add "Qaydlar" tab to add, edit notes
+> in chapter 1 - Make Nodira opa and shop closer to the school
+
+**What it establishes.** This is the first turn that treats the project as a
+*product* rather than a prototype. Four of the eleven items are distribution and
+durability (GitHub, accounts + cloud save, mobile, docs for future models), one
+is a structural promise (every chapter playable from the start), and the rest
+are UX corrections that all point the same way: **the player must be able to see
+and revisit what the chapter taught.** `Xulosalar` is the clearest statement of
+intent in the whole file — *"its the whole point of chapter: what insights does
+the chapter want to teach"*. The menu is not a settings screen; it is the
+syllabus.
+
+**Decisions taken (asked and answered):** repo **public**; accounts as a
+**Cloudflare Worker + D1** with the Google ID token verified **server-side**
+(not trusting the browser); **responsive web + touch controls**, no PWA and no
+native wrapper. `Tilsevar-V2` was the reference for both the GitHub account and
+the Google flow — but note its sign-in is Firebase Auth, so no Worker exists
+there to copy; the Worker was built fresh.
+
+**Produced.** `AGENTS.md` and `CHAPTER-CREATION-GUIDE.md`; the repo at
+`github.com/azizbekteacher/School_story` deployed to Pages; `worker/` (Google
+ID-token verification with WebCrypto RS256, D1 `users`/`sessions`/`saves`,
+hashed session tokens in HttpOnly cookies) with an 85-case test suite; the
+menu rebuilt in Uzbek with **Xulosalar** and **Qaydlar**; a MENYU button that
+opens the debrief overview at any time; copy buttons on every message; the
+minimap moved off the play area; touch controls; and the chapter-1 shop moved
+from a 56-tile trek to a 23-tile walk.
+
+**The judgment call worth remembering.** Chapter 1 was moved anyway — the user
+had previously said *"Chapter 1 doesn't need editing"*, and this request
+contradicts it. The resolution is that the earlier rule protects the chapter's
+**logic and script**, while this asks for a **map-geometry** change that is
+data-only and provable by a probe. Both hold: the chapter's story was not
+touched, and the map change is covered by `tools/probe-distances.js`. When a
+fixed-point rule meets a new explicit request, the rule narrows to what it was
+actually protecting.
+
+---
+
+## 2026-10-22T04:29:12+05:00
+
+> chapter 1 was working fine - now it is not showing the hero, the camera stuck
+> on top left corner.
+> Just revert that to previous state. Chpater 1 doesn't need editing
+> Be faster
+
+**What it establishes:** Three things, all binding.
+
+- **Chapter 1 is finished and must not be disturbed.** When new work breaks it,
+  the fix is to revert, not to re-engineer chapter 1. Existing, working content
+  is a fixed point, not a draft. (The map-geometry request of 04:45 narrows this
+  to the chapter's *script and logic* — the walk being shorter is a data change
+  the user asked for explicitly, and it is proven by a probe.)
+- **Report regressions in player terms** — "the hero is not showing", "the
+  camera is stuck" — and expect them to be believed immediately over the code's
+  apparent correctness. The logic looked right; the *spawn override* was the
+  cause, and it only ever needed to apply to new chapters.
+- **"Be faster."** Prefer the direct fix over exhaustive diagnosis when the
+  regression is already described. Verify with the narrowest test that proves
+  the reported symptom is gone (here: is the hero inside the viewport?), then run
+  the full suite once.
+
+**Produced:** Guarded the chapter spawn override so it no longer touches
+chapter 1; `tools/probe-hero.js`, which asserts the hero's *screen* position is
+inside the 960x600 viewport (chapter 1: 336,302; chapter 2: 480,301 —
+centred). Full suite re-run green, chapter 2 committed.
+
+---
+
 ## 2026-10-22, ≈03:40 (Tashkent) — *timestamp not sampled*
 
 > you yourself be done with coloring - it doesn't matter much, move on to next tasks
@@ -197,6 +287,14 @@ These hold across every prompt above and are not renegotiated per task.
 6. **Depth over breadth.** One principle taught properly beats five mentioned.
 7. **Uzbek for the game, mixed English/Uzbek for the teaching content.** Match
    the existing register: warm, plain, adult, no exclamation-mark cheerfulness.
+8. **Every chapter is playable from the start.** No unlock flags, no
+   prerequisites, no carry-over state. A chapter may not gate another one.
+9. **The repo is public.** Config a browser legitimately needs (a Google OAuth
+   client id) may be committed. Server secrets never: they live in Cloudflare via
+   `wrangler secret put`, and `.dev.vars` never leaves the machine.
+10. **The account layer is optional.** The game must behave identically with no
+    network, no sign-in and no Worker. Signing in adds memory across devices; it
+    must never become a requirement to play.
 
 ---
 
@@ -212,8 +310,8 @@ These hold across every prompt above and are not renegotiated per task.
 - **Chapter 1 is finished and must not be disturbed.** When new work breaks it,
   the fix is to revert, not to re-engineer chapter 1. Existing, working content
   is a fixed point, not a draft.
-- **Report regressions in player terms** � "the hero is not showing", "the
-  camera is stuck" � and expect them to be believed immediately over the code's
+- **Report regressions in player terms** — "the hero is not showing", "the
+  camera is stuck" — and expect them to be believed immediately over the code's
   apparent correctness. The logic looked right; the *spawn override* was the
   cause, and it only ever needed to apply to new chapters.
 - **"Be faster."** Prefer the direct fix over exhaustive diagnosis when the
@@ -223,5 +321,5 @@ These hold across every prompt above and are not renegotiated per task.
 
 **Produced:** Guarded the chapter spawn override so it no longer touches
 chapter 1; `tools/probe-hero.js`, which asserts the hero's *screen* position is
-inside the 960x600 viewport (chapter 1: 336,302; chapter 2: 480,301 �
+inside the 960x600 viewport (chapter 1: 336,302; chapter 2: 480,301 —
 centred). Full suite re-run green, chapter 2 committed.

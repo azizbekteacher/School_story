@@ -1,0 +1,26 @@
+# Local development values for `wrangler dev` only.
+#
+# Copy to `.dev.vars` (git-ignored) and fill in. Nothing here is committed and
+# nothing here is a production secret: `wrangler dev` reads this file, the
+# deployed Worker reads real values from `wrangler secret put`.
+#
+#   copy .dev.vars.example .dev.vars
+#
+# ---------------------------------------------------------------------------
+# The OAuth *web client id*. Public by nature (the browser needs it), but kept
+# out of git so each deployment's configuration lives in one place.
+# Get it from: Google Cloud Console -> APIs & Services -> Credentials ->
+# OAuth 2.0 Client IDs -> your "Web application" client.
+GOOGLE_CLIENT_ID="REPLACE_WITH_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+
+# Local dev is plain http, and browsers refuse to store a `Secure` cookie over
+# http. Set this to "false" *only* in this file; production stays "true" via
+# wrangler.toml.
+COOKIE_SECURE="false"
+
+# Origins allowed to call the Worker. Same syntax as wrangler.toml.
+ALLOWED_ORIGINS="http://127.0.0.1:*,http://localhost:*"
+
+# Optional. Leave unset to let the Worker choose (Lax for same-host, None for
+# GitHub Pages -> *.workers.dev). Uncomment to pin:
+# COOKIE_SAMESITE="Lax"

@@ -18,3 +18,9 @@ desktop.ini
 
 # The stable worktree created by play-stable.bat
 _stable-play/
+
+# Local Worker dev secrets (see worker/.dev.vars.example; never commit real values)
+worker/.dev.vars
+
+# Wrangler local cache (created by \wrangler dev\ from the repo root)
+.wrangler/
