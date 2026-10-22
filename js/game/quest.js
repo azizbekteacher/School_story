@@ -8,6 +8,7 @@ G.quest = (function () {
   var toastQueue = [];
   var zoneCooldown = 0;
   var lastZone = "";
+  var lastBeat = "";
   var pendingTriggerZone = null;
   var t = 0;
   var minimapT = 0;
@@ -18,6 +19,7 @@ G.quest = (function () {
     toastQueue = [];
     zoneCooldown = 1.2;
     lastZone = "";
+    lastBeat = "";
     pendingTriggerZone = null;
   }
 
@@ -73,8 +75,22 @@ G.quest = (function () {
 
     // zone triggers: remember a pending zone so a trigger that was blocked by the
     // cooldown still fires once the cooldown clears (instead of being lost).
+    //
+    // ALSO re-arm when the BEAT changes, not only when the zone changes.
+    // A scene can advance the beat while the player stands still — e.g. chapter
+    // 2's `door` scene is entered from the classroom and sets beat:"open", whose
+    // own trigger is also on the classroom. Zone-only tracking left
+    // pendingTriggerZone null in exactly that case, so the next beat's trigger
+    // could never fire and the objective hung on "Birinchi 90 soniya" forever
+    // until the player happened to leave and re-enter the room.
+    var beatNow = beat();
     if (zone !== lastZone) {
       lastZone = zone;
+      pendingTriggerZone = zone;
+      lastBeat = beatNow;
+    } else if (beatNow !== lastBeat) {
+      // the beat moved under our feet: give this zone's trigger another chance
+      lastBeat = beatNow;
       pendingTriggerZone = zone;
     }
     if (pendingTriggerZone && zoneCooldown <= 0 && pendingTriggerZone === zone) {
