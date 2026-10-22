@@ -14,6 +14,44 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈07:00 (Tashkent) — the wave: Coolify documented, and three ways it can silently not serve
+
+> explain in "C:\Users\bluep\(1d) game\AGENTS.md" that - the project's Coolify
+> credentials, and other useful info
+
+**What it establishes.** The project now has a second production target besides
+GitHub Pages, and AGENTS.md §14 is the authority on it: the instance facts, the
+**locations** of the credentials, and the gotchas. The important part is what the
+request *implies* rather than says — the user has been deploying this game to his
+own VPS and the repo's own docs never mentioned it, so anyone (human or model)
+reading the repo would not know the Coolify app exists, would not know it is
+already in the right project, and would re-diagnose the same four failures.
+
+**Standing decision: credentials are referenced by location, never by value.**
+The repo is public and Standing constraint 2 already forbids secrets in it. So
+§14 documents *where* the Coolify token and SSH key live
+(`~/.config/coolify/api_token`, `~/.ssh/coolify_localhost`) and never reproduces
+them. A future model that needs the token reads the file at run time; it does not
+find it in the documentation. This is the pattern for any future operator note.
+
+**What it records as verified, not assumed.** Every gotcha in §14 was reproduced
+before it was written down: the `main`-vs-`master` clone failure (`exit 128`,
+"Remote branch main not found"), the frozen base64 `custom_labels` overriding
+`ports_exposes` and returning 502, auto-deploy being `true` while the GitHub repo
+has **zero webhooks**, and Coolify serving `tools/` + `play-stable.bat` that Pages
+deliberately excludes. The `AGENTS.md` 404 was the tell that Coolify builds from
+GitHub and not from disk.
+
+**What it produced.** AGENTS.md §14 (new) and §15 renumbering; the "Where to look
+first" table gained a Coolify row. No code, no config change — this wave is
+documentation about production, not a change to production.
+
+**Not done, deliberately.** The repo stays **public** (the user considered private
+and reversed: "nvm, stay public for now"), and Coolify still has no webhook, so
+deploys there remain manual. Both are decisions, not oversights.
+
+---
+
 ## 2026-10-22, ≈06:51 (Tashkent) — the wave: two HUD buttons, and a chapter list you can reopen mid-game
 
 > also, add "Xulosalar" button that does the function of current menu button.
