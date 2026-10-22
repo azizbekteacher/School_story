@@ -30,17 +30,39 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(ellipse at 50% 40%, #4a4038 0%, #2b2620 70%);
+  background: #0f0d0b;
 }
 
+/* The stage fills the viewport. It used to be letterboxed to a 960x600 aspect
+   (width: min(100vw,160vh)), which on a wide desktop left two thick brown bars
+   down the left and right of the game — the page background showing through.
+   The game UI is supposed to be the whole screen, so the stage is now 100% of
+   the viewport and the canvas stretches to it. On a 16:10 or 8:5 screen that
+   stretch is zero (those are exactly 960x600 in aspect); on 16:9 it is a mild
+   ~11% horizontal. input.js maps pointer coordinates by the element's own
+   bounds, so clicks stay aligned under any stretch.
+
+   EXCEPT on viewports far from 1.6:1. A landscape phone is 844x390 = 2.16:1,
+   and filling that would stretch the game 35% horizontally — the hero would
+   look like a different person. So when the aspect is outside the band
+   1.4..2.0 the stage letterboxes instead of stretching, which keeps phones
+   (and 21:9 ultrawides) looking right and still leaves every ordinary desktop
+   display completely full-bleed. The page background is the game's own dark
+   tone, so the small letterbox reads as a frame, not as the brown bars the
+   user reported. */
 #stage {
   position: relative;
-  width: min(100vw, 160vh);
-  height: min(100vh, 62.5vw);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(232, 196, 128, .18);
-  border-radius: 4px;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
+}
+
+@media (max-aspect-ratio: 14/10), (min-aspect-ratio: 2/1) {
+  #stage {
+    /* 960:600 == 8:5 == 1.6 */
+    width: min(100vw, calc(100vh * 8 / 5));
+    height: min(100vh, calc(100vw * 5 / 8));
+  }
 }
 
 canvas#game {

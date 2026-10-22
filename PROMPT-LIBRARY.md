@@ -14,6 +14,250 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈06:51 (Tashkent) — the wave: two HUD buttons, and a chapter list you can reopen mid-game
+
+> also, add "Xulosalar" button that does the function of current menu button.
+> Current menu button should lead to the chapter list. Re-tapping the current
+> chapter should show 2 buttons: "Davom etish" "Boshidan boshlash". Completed
+> chapters should start from beginning if re-tapped on menu
+
+**What it establishes.** The HUD had exactly one button, MENYU, and it opened the
+coaching overview. That single button was carrying two unrelated jobs: *read what
+I have learned* and *get me out of / into a chapter*. The user's request splits
+them, and the split has a direction — **the reading surface keeps the old
+behaviour, the navigation moves to the new one.** So `XULOSALAR` is the renamed
+MENYU (same `G.debrief.openOverview()`, same four tabs, same Escape route), and
+`MENYU` becomes the chapter list.
+
+The chapter list is a new surface but not a new concept: it is the title screen's
+chapter picker, available mid-game. That is the real gain — before this, changing
+chapter meant reloading the page. The rules that make it safe are the user's own,
+spelled out in the three sentences:
+
+1. **Re-tapping the chapter you are in asks a question instead of guessing.**
+   Two buttons, `DAVOM ETISH` and `BOSHIDAN BOSHLASH`. This is the first time the
+   game has ever offered a destructive choice, so the modal is deliberate: an
+   accidental tap on your own chapter must not silently erase a run.
+2. **A completed chapter restarts from the beginning.** There is nothing to
+   resume — a finished run's save sits on the terminal debrief — so "continue"
+   would be a lie. One tap, straight to the first beat.
+3. Implicitly: **completion has to outlive a single run.** This is the part that
+   needed engine work, and the reason the wave is not purely UI.
+
+**Why "completed" needed a new store.** The save file holds *one* chapter: the
+run in progress. Whether a chapter was ever finished is a different fact, and it
+must survive starting another chapter and starting this one fresh. It cannot live
+in `G.state` either — `reset()` clears it, and `G.memory.snapshot()` lists fields
+explicitly and would drop it. So completion got its own tiny record,
+`sulton.progress.v1`, deliberately **outside** the save: starting a chapter from
+the top must not erase the memory that you once finished it. Shape:
+`{ ch1: { completed, times, at } }`. `times` is there so the menu can say
+"tugatilgan · 2 marta" — replaying is not a failure, and the game should not
+pretend it did not happen.
+
+**What it produced.**
+
+- `js/game/memory.js` — `progress()`, `markCompleted()`, `isCompleted()`,
+  `clearCompleted()` over `sulton.progress.v1`. `markCompleted` is idempotent, so
+  re-entering the debrief cannot inflate the count.
+- `js/game/dialogue.js` — `finishMission()` records the completion *before*
+  showing the debrief, so the menu is correct the instant the player can open it.
+  Guarded with `if (G.memory && G.memory.markCompleted)` because the headless vm
+  harnesses do not always provide it.
+- `js/main.js` — two pills in the left HUD column (`XULOSALAR` 20,116 / `MENYU`
+  132,116, both 104×28), the chapter overlay, and `GAME.__menu` test hooks.
+  `escape` now opens the chapter list (was: the overview) — the reading surface
+  is still one tap away, and Escape is the "get unstuck" key, not the "read"
+  key.
+- `tools/probe-chapter-menu.js` — new gate, 30 assertions in four groups
+  (A the two buttons, B the two-action confirm, C restart-from-top, D safety).
+
+**Two bugs this found, both worth remembering.**
+
+1. **A branch that returns early cannot be click-tested.** The confirm row was
+   drawn correctly and was completely dead: `updateChapterMenu` handled the
+   confirm *keyboard* branch and returned before the mouse hit-test ran. The
+   panel looked perfect. Fix: mouse hit-testing happens **first**, before any
+   branching, because pointer input has no fallback path.
+2. **Synthetic `keydown` without `keyup` fires exactly once.** `input.js` only
+   sets `pressed[k]` when `!down[k]`, so a probe that dispatches bare keydowns
+   advances one dialogue line and then hangs forever — and the *game* looks
+   broken while the probe is the broken thing. Every key in a probe needs both
+   halves.
+
+**Standing constraint added** (see [Standing constraints](#standing-constraints)):
+menu surfaces must be reachable by pointer *and* keyboard, and the two must be
+tested separately.
+
+---
+
+## 2026-10-22, ≈06:21 (Tashkent) — the wave: a third chapter-2 minigame, "To'g'ri maqtov"
+
+> TASK: add ONE new minigame to `js/data/minigames/chapter2.js`, appended at the
+> end of the file (do not modify the two existing registrations `firstNinety` and
+> `registerRun` — another process depends on them byte-for-byte).
+> Register it with id: `complimentRun`
+> THE GAME: "To'g'ri maqtov" — giving the right compliment to the right pupil.
+> …the book's rule is that a compliment must be *specific and true*, not generic.
+
+**What it establishes.** The "I could give active students compliments" line from
+the chapter-2 rewrite is now a mechanic, not a line of dialogue. The rule the
+game enforces is Guidara's, applied to a classroom: *a compliment is a fact about
+a person, said at the moment it is true.* Four pupils, four pieces of intel, and
+in every round exactly one of four lines is specific-and-true. The three wrong
+kinds are named, because naming them is the teaching:
+
+- **generic** — "Barakalla, juda yaxshi." True of everyone, therefore of no one.
+- **flattering-but-false** — claims something the pupil knows is untrue
+  ("sen hech qachon xato qilmaysan" to the girl who stayed behind to fix an error).
+- **backhanded** — "yaxshi, hech bo'lmasa bir marta urinib ko'rding."
+
+Scoring: 3-4 specific compliments is a win; one generic line among the wins
+downgrades it. This is the chapter-2 principle split in mechanical form —
+`C2-004` (service is the rule, colour is the reason) and `C2-005` (the moment it
+breaks is the impression), reused rather than given new ids.
+
+**What it produced.** ~455 appended lines in `js/data/minigames/chapter2.js`, no
+deletions (verified: `git diff --numstat` = `455 0`, one hunk at EOF). Three
+choice ids with full string literals so the validator's regex sees them:
+`CH2_MG_COMPLIMENT_BEST` / `_OK` / `_WRONG`. Wins grant `intel_compliment`.
+
+**Standing decisions this wave made, worth keeping:**
+
+- **A mis-click must not skip the lesson.** During the feedback beat only the
+  feedback panel itself advances the round; a stray click does nothing. The
+  sentence explaining *why* a line was wrong is the content — it is not allowed to
+  be dismissible by accident.
+- **Append, never rewrite.** A sibling process was rewriting
+  `js/data/chapter2-learning.js` and the story file the whole time. Anchoring the
+  `edit` on the file's final `})();` and verifying `455 0` afterwards is the
+  pattern for adding to a file another agent owns.
+- **The three ids failing `validate-chapter2.js` is expected, not a regression.**
+  The validator requires a `choiceNotes` entry per minigame choice id and the
+  learning file is being rewritten by someone else. Do not edit
+  `chapter2-learning.js` to silence it; report the failure verbatim.
+
+---
+
+## 2026-10-22, ≈06:17 (Tashkent) — the wave: the shop, the borders, the centring, and chapter 2 rewritten from the book
+
+> move Sardor aka's shop on above the school. make it smallar, give the shop a
+> more "shoppy" look
+> When on desktop there are two thick brown borders on right and left of game UI.
+> Make game UI fully cover the screen
+> the messages, option texts are being pulled to the left of their box, leaving
+> them. Make it align center, like as before
+> all chapters should be playable without completing the previous ones
+> [chapter 2] I didn't like it, like, at all
+> It doesn't have genuine ideas - like really profound ideas, either from
+> internet or Unreasonable Hospitality book on giving best impression. it needs
+> strong ideas
+> it didn't use almost none of the ideas from Unreasonable Hospitality book -
+> like connecting with them, giving them small gifts, learning about them, giving
+> personalized attention - it felt like it didn't look at Notion nor web on that
+> book's insights
+> it also didn't take into account my personal info - I was regional chempion of
+> olympiad in Bukhara - the strongest region in uzb on math. I studied madrasa -
+> really interesting place
+> I could give active students compliments
+> the agent needs to deeply learn the book - and teach it to me
+> it also felt like really short - don't restrain from teaching many principles
+> Also make classroom bigger - both in size and in assets: blcakboard, mini
+> gifts, teacher table, flowers - it should really feel like a classroom - bcs
+> most of my time will be spent there
+> The chapter story should also be legendary - like the reader should feel "Wow,
+> this guy nailed the first lesson" when completing the chapter. it should really
+> feel like a really good fiction
+
+**What it establishes.** Four separate things, and only one of them is polish.
+
+1. **The presentation corrections are real bugs, not taste.** The brown side bars
+   were the letterboxed `#stage` (`width: min(100vw,160vh)`) letting the page
+   background show through on wide monitors. The left-pulled text was the
+   `ctx.textAlign` stickiness trap showing up for the *fifth* time — centring had
+   been happening by inheritance, so any surface that set `align="left"` and did
+   not reset it dragged dialogue text off its box. Fix the cause, not the symptom:
+   **centring must be explicit at every draw site that assumes it.**
+2. **"All chapters playable without completing the previous ones" is already
+   true in the code and must stay true.** There are no unlock flags and no
+   carry-over state; `G.chapters.playableFromStart(id)` exists precisely so a
+   future chapter cannot introduce a lock. This is a standing constraint now, and
+   it needs a *test*, not a claim.
+3. **Chapter 2's problem was depth, and the user named the source of depth
+   themselves: the book, Notion, and his own life.** "It doesn't have genuine
+   ideas" is not a request for more scenes — it is a request for *fewer, heavier*
+   ideas that a teacher could actually use on Monday. The verbatim line that
+   should guide every future chapter rewrite is: **"the agent needs to deeply
+   learn the book - and teach it to me."** Studying the source is not preparation
+   for writing the chapter; it *is* the chapter.
+4. **His biography is content, not decoration.** Regional olympiad champion in
+   **Bukhara** — the strongest maths region in Uzbekistan — and a **madrasa**
+   student, a place where the teacher knew every name from the first day. Both
+   are dramatically useful: the olympiad medal is the *temptation* (prove yourself
+   in ten seconds), the madrasa is the *alternative* (be known before you
+   perform). A chapter that does not make him choose between those two is not
+   about him.
+5. **"I could give active students compliments"** is the user handing over a
+   mechanic. Specific, observed praise is the cheapest hospitality in a classroom
+   and the one he most wanted to practise; it became a minigame, not a paragraph.
+
+**What "legendary" means, concretely.** The bar is *"the reader should feel 'Wow,
+this guy nailed the first lesson'"* — so the chapter must be winnable in a way
+that feels earned, must end on a moment worth retelling, and must be built so the
+impressive move and the hospitable move are **never the same move**. Every beat is
+a fork: be excellent at maths, or excellent at people.
+
+**Produced.**
+
+- **Chapter 2 rewritten from scratch** — `js/data/chapter2.js`, a ten-beat
+  first lesson (8:52 to 9:45): corridor intel-gathering before the bell, the door,
+  the first ninety seconds, names, the agreement, the olympiad temptation, the
+  torn page, the last ten minutes, the exit. Six pupils, each with a beat-keyed
+  entry and a distinct need.
+- **`js/data/chapter2-learning.js` rewritten** — eight principles `C2-001`…
+  `C2-008` mapped to verified book material: the verdict is reached before you
+  speak · a name is the smallest unit of hospitality · somebody's job is to
+  notice (the Dreamweaver) · one size fits one · specific beats generic · the
+  gesture nobody asked for (the $2 hot dog, systemised) · the last minute is the
+  impression they keep · the enemy is "reasonable".
+- **A `complimentRun` minigame** — four pupils, specific-vs-generic praise,
+  grants `intel_compliment`. This is the "I could give active students
+  compliments" line turned into something playable.
+- **A verified research report** — `UNREASONABLE-HOSPITALITY-RESEARCH.md`, plus a
+  Notion extraction of the user's own 1,215 book highlights and the 48-insight
+  "Ai review" page. Every principle now cites a real chapter of the real book.
+- **CSS**: `#stage` fills the viewport; `body` background is the page's own warm
+  black instead of a gradient that read as bars.
+- **`js/game/dialogue.js`**: five explicit `textAlign` sites (body, narration
+  label, choice prompt, choice option, multi option).
+- **`AGENTS.md` §0** — the PROMPT-LIBRARY rule, hard-coded at the top of the
+  file, because *this* is the wave where it was forgotten again.
+
+**The mistake this wave records, so it stops repeating.** The rule was written
+into `AGENTS.md` and into the standing constraints, and then the very first
+turn after writing it again shipped code without touching this file. The user
+had to say *"prompt librar still didt change"*. The lesson is not "remember
+harder" — it is that a rule stated in prose loses to a rule checked by a
+command. The check is now in `AGENTS.md` §0 as a copy-pasteable one-liner, and
+the correct trigger is **before writing the final summary**, not after.
+
+**Design decisions worth not re-litigating.**
+
+- **The chapter does not say the theme out loud.** It stages it, then the debrief
+  shows the bill. That is the engine's whole point and chapter 1 already does it.
+- **The olympiad credential must be withholdable.** A version where he simply
+  mentions it and everyone is impressed teaches nothing. The strong choice is to
+  mention it *and redirect it* — "this gave me nothing; one teacher gave me
+  something, she knew my name on day one".
+- **"Legendary" is earned by a callback, not by stakes.** The moment that makes
+  the chapter land is Bekzod's method written on the board under his own name —
+  and the exit choice is whether he wipes it off. Cheap, small, and the exact
+  thing Guidara says about the hot dog: the cost is irrelevant, the specificity
+  is everything.
+- **Every beat needs a trigger or a beat-keyed NPC**, because the generic
+  playtest walker only advances the mission through those two doors. This is a
+  hard engineering constraint on any future chapter rewrite, not a style note.
+
 ## 2026-10-22, ≈04:45 (Tashkent) — the wave: ship it, account for it, and make it playable on a phone
 
 > First, create a plan.
@@ -57,7 +301,7 @@ there to copy; the Worker was built fresh.
 **Produced.** `AGENTS.md` and `CHAPTER-CREATION-GUIDE.md`; the repo at
 `github.com/azizbekteacher/School_story` deployed to Pages; `worker/` (Google
 ID-token verification with WebCrypto RS256, D1 `users`/`sessions`/`saves`,
-hashed session tokens in HttpOnly cookies) with an 85-case test suite; the
+hashed session tokens in HttpOnly cookies) with an 87-assertion test suite; the
 menu rebuilt in Uzbek with **Xulosalar** and **Qaydlar**; a MENYU button that
 opens the debrief overview at any time; copy buttons on every message; the
 minimap moved off the play area; touch controls; and the chapter-1 shop moved
@@ -71,6 +315,52 @@ data-only and provable by a probe. Both hold: the chapter's story was not
 touched, and the map change is covered by `tools/probe-distances.js`. When a
 fixed-point rule meets a new explicit request, the rule narrows to what it was
 actually protecting.
+
+### Follow-up to the same wave: the correction that mattered
+
+> you are forgetting to update prompt library
+
+**What it establishes.** A standing rule, and an unusually direct one: **the
+library is part of the deliverable, not documentation written afterwards.** When
+a wave lands, the file that records *why* it landed is updated in the same
+breath. It is the one artefact the user checks by name, which makes it the
+truest signal of whether a model treated the project as a system or as a diff.
+
+The practical consequence: when a turn is finished, the last step is always
+`PROMPT-LIBRARY.md` (and `AGENTS.md` for anything a future model must not
+rediscover). Leaving it stale is treated as the work being incomplete.
+
+**What the follow-up found and fixed.** Writing the entry honestly forced a
+re-audit, and the re-audit is what surfaced the real defects:
+
+- **`audit-text.js` was red — 60 overflow — and it was my own map change that
+  turned it red.** The temptation was to widen the threshold; the honest read was
+  that a player can see the problem. Chasing it found **five** `textAlign` bugs
+  of the same shape (a draw function assuming `"left"` while an earlier surface
+  left `"center"`, so text centred on an explicit left margin and hung off the
+  panel) in `quest.js`, `dialogue.js` and `debrief.js`, plus a real one in
+  `world.js` where an NPC name tag was cut in half at the screen edge. Fixed at
+  the cause; audit green on all ten surfaces.
+- **`multi` had never routed to its answers.** Chapter 1's mother scene asked two
+  questions and skipped both replies: four nodes dead, and the intel they were
+  meant to teach granted by accident. The validators missed it because their
+  orphan scan counts an option's `next` as an edge, so the answers *looked*
+  reachable. This is the strongest argument in the file for probes that **play**
+  a scene rather than analyse it statically.
+- **A new state field was silently dropped from the save.** `memory.js` builds
+  the save by listing fields explicitly, so `userNotes` was written by the state
+  layer, validated by `restore()`, and never actually persisted. Two places to
+  touch, and only one was obvious.
+
+**Produced.** This follow-up entry; `AGENTS.md` corrected where it had gone
+stale (it still described the account client as a no-op stub and the text audit
+as permanently red); `tools/probe-multi.js`, `tools/probe-multi-next.js` and
+`tools/check-menu.js` as new gates; and a green run of all seventeen.
+
+**The lesson worth keeping.** Every one of those three defects was invisible to
+the gates that existed when the wave "shipped". A green suite is evidence about
+the things it already checks, and nothing about the rest. The follow-up was
+cheaper than the user finding them.
 
 ---
 
@@ -295,6 +585,33 @@ These hold across every prompt above and are not renegotiated per task.
 10. **The account layer is optional.** The game must behave identically with no
     network, no sign-in and no Worker. Signing in adds memory across devices; it
     must never become a requirement to play.
+11. **`PROMPT-LIBRARY.md` is finished work, not follow-up work.** Update it in the
+    same turn a wave lands. The user checks this file by name; a stale library
+    means the turn is not done. **This rule is hard-coded as `AGENTS.md` §0**, at
+    the top of the file rather than in a list, because stating it in prose twice
+    was not enough — it was still skipped twice. The enforcement is a command, run
+    before writing any final summary:
+
+    ```powershell
+    Select-String -Path PROMPT-LIBRARY.md -Pattern '^## ' | Select-Object -First 3
+    ```
+
+    If the top hit is not this wave, stop and write the entry first.
+12. **Every menu surface works by pointer *and* by keyboard, and both are
+    tested separately.** The HUD is canvas-drawn, so a menu can look completely
+    correct and be untouchable: the chapter-list confirm buttons were drawn,
+    hovered and highlighted while being entirely dead, because the update
+    function hit a keyboard branch that `return`ed before the mouse hit-test
+    ran. Two rules follow. (a) In an overlay's update function, hit-test the
+    pointer **before** branching on keys — pointer input has no second route
+    into the surface. (b) A probe that dispatches a synthetic `keydown` without a
+    matching `keyup` fires **once** and then goes dead (`input.js` sets
+    `pressed[k]` only when `!down[k]`), so keyboard paths must be driven with
+    both halves or the probe will report the game broken when the probe is.
+12. **A green suite is not a passing grade.** Every defect this wave shipped had
+    a green run behind it. When a gate is red, fix the cause; when a surface has
+    no gate, write one that *plays* the thing (a probe) rather than only reading
+    the data (a validator).
 
 ---
 

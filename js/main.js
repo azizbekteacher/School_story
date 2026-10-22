@@ -285,16 +285,26 @@ window.G = window.G || {};
       // world this frame, so the player cannot take one more step into it
       if (G.debrief.isVisible()) { state = "debrief"; return; }
 
-      // MENYU opens the read-only overview. Checked before the overlays so the
-      // button is never stolen by a dialogue hit-test, and guarded by
-      // menuButtonVisible() so it cannot fire while something modal owns input.
-      if (menuButtonVisible() && G.input.mouse.clicked && menuButtonHit()) {
+      /* The chapter overlay owns input while it is open: it is the topmost
+         surface, and it must be able to close itself with Escape. */
+      if (chapterMenuOpen) {
+        updateChapterMenu();
+        return;
+      }
+
+      /* XULOSALAR — the coaching overview (the original MENYU behaviour). */
+      if (menuButtonVisible() && G.input.mouse.clicked && xulButtonHit()) {
         if (G.debrief.openOverview()) {
           G.audio.select();
           return;
         }
       }
-      // Ctrl/Cmd-free keyboard route: Escape also opens it while free-roaming,
+      /* MENYU — the chapter list. */
+      if (menuButtonVisible() && G.input.mouse.clicked && menuButtonHit()) {
+        openChapterMenu();
+        return;
+      }
+      // Ctrl/Cmd-free keyboard route: Escape also opens it while free-roaming.
       // The notebook is checked before anything else that reads Escape, because
       // while the player is typing a note the textarea must own the keyboard.
       if (G.notebook.isOpen()) {
@@ -305,7 +315,8 @@ window.G = window.G || {};
       // since nothing else claims Escape in the play state.
       if (menuButtonVisible() && G.input.wasPressed("escape")) {
         G.input.consume("escape");
-        if (G.debrief.openOverview()) { G.audio.select(); return; }
+        openChapterMenu();
+        return;
       }
 
       if (G.minigameHost.isActive()) {
@@ -364,9 +375,12 @@ window.G = window.G || {};
       // objective tick overlay when free
       if (!G.dialogue.isActive() && !G.minigameHost.isActive() &&
           !G.notebook.isOpen() && !G.debrief.isVisible()) {
-        drawMenuButton();
+        drawMenuButtons();
         drawControlHint();
       }
+
+      // the chapter list sits above everything in the play state
+      drawChapterMenu();
     }
 
     G.render.vignette(ctx);
@@ -390,40 +404,401 @@ window.G = window.G || {};
     ctx.restore();
   }
 
-  /* ---- MENYU -------------------------------------------------------------
-     A button in the top-left, under the objective and trust column, that opens
-     the debrief panel in read-only "overview" mode at any point in a chapter —
-     the same four tabs the player sees at the end, without ending the mission.
-     From there the coaching menu (Xulosalar / Qaydlar / …) is one tap away. */
-  var MENU_BTN = { x: 20, y: 116, w: 96, h: 30 };
+  /* ---- In-game chapter menu ----------------------------------------------
+     Two buttons now live in the top-left column, under the objective and trust
+     panels:
+
+       XULOSALAR  — opens the read-only coaching overview (the four chapter-end
+                    tabs). This is the ORIGINAL MENYU behaviour, renamed: the
+                    user asked for a button that "does the function of current
+                    menu button".
+       MENYU      — opens a chapter list, so a chapter can be picked mid-game
+                    without going back to the title screen.
+
+     In the chapter list, tapping the chapter you are currently in offers two
+     explicit choices — "Davom etish" (resume where you are) and "Boshidan
+     boshlash" (restart from the first beat, clearing the save). A chapter that
+     has already been completed restarts from the beginning when re-tapped,
+     because a finished run has nothing left to resume: its save sits on the
+     terminal debrief. */
+  var CHAP_BTN_W = 104, CHAP_BTN_H = 28;
+  var XUL_BTN = { x: 20, y: 116, w: CHAP_BTN_W, h: CHAP_BTN_H };
+  var MENU_BTN = { x: 20 + CHAP_BTN_W + 8, y: 116, w: CHAP_BTN_W, h: CHAP_BTN_H };
+
+  // chapter menu overlay state
+  var chapterMenuOpen = false;
+  var chapterMenuSel = 0;         // which chapter row is highlighted
+  var chapterMenuConfirm = null;  // chapter id awaiting Davom/Boshidan choice
+  var chapterMenuT = 0;
+  var chapterRowRects = [];       // hit rects for the rows this frame
+  var chapterActionRects = [];    // hit rects for the confirm buttons
 
   function menuButtonVisible() {
     return state === "play" && !G.dialogue.isActive() && !G.minigameHost.isActive() &&
-      !G.notebook.isOpen() && !G.debrief.isVisible();
+      !G.notebook.isOpen() && !G.debrief.isVisible() && !chapterMenuOpen;
   }
 
-  function drawMenuButton() {
-    if (!menuButtonVisible()) return;
-    var b = MENU_BTN;
-    var hover = G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
-    ctx.save();
-    G.util.roundRect(ctx, b.x, b.y, b.w, b.h, 8);
-    ctx.fillStyle = hover ? "rgba(217,164,76,.28)" : "rgba(68,58,47,.85)";
-    ctx.fill();
-    ctx.strokeStyle = hover ? "rgba(232,196,128,.9)" : "rgba(232,196,128,.45)";
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-    ctx.font = "bold 12px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "#f2dfae";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("MENYU", b.x + b.w / 2, b.y + b.h / 2 + 0.5);
-    ctx.restore();
+  function openChapterMenu() {
+    chapterMenuOpen = true;
+    chapterMenuT = 0;
+    chapterMenuConfirm = null;
+    var chs = G.chapters.list();
+    // highlight the chapter we are currently in
+    var cur = G.state.chapter;
+    for (var i = 0; i < chs.length; i++) {
+      if (chs[i].id === cur) { chapterMenuSel = i; break; }
+    }
+    G.audio.door();
   }
+
+  function closeChapterMenu() {
+    if (!chapterMenuOpen) return;
+    chapterMenuOpen = false;
+    chapterMenuConfirm = null;
+    G.audio.tick();
+  }
+
+  /* Start (or restart) a chapter from this overlay.
+       fresh  — discard the save and begin at the chapter's first beat
+       else   — start the chapter; if the save belongs to it, resume that run
+     `startGame` itself decides between resume and fresh from the save it is
+     handed, so the honest call for "Davom etish" is to pass the saved object. */
+  function chapterMenuStart(chapterId, fresh) {
+    var resume = null;
+    if (fresh) {
+      G.memory.clear();
+      // A restarted chapter is no longer "finished": the menu should offer
+      // Davom etish again once there is real progress to continue from.
+      if (G.memory.clearCompleted) G.memory.clearCompleted(chapterId);
+    } else {
+      var saved = G.memory.load();
+      // only resume a save that belongs to the chapter being opened
+      if (saved && saved.chapter === chapterId && !saved.finished) resume = saved;
+    }
+    closeChapterMenu();
+    pendingState = function () { startGame(resume, chapterId); };
+    fadeDir = 1;
+    G.audio.select();
+  }
+
+  /* What tapping a chapter row means. The user's two rules, applied in order:
+
+       "Re-tapping the current chapter should show 2 buttons:
+        Davom etish / Boshidan boshlash"
+       "Completed chapters should start from beginning if re-tapped on menu"
+
+     So:
+       - a COMPLETED chapter that is not the live one: start it from the top,
+         right away. One tap, matching "completed chapters start from beginning".
+       - the LIVE chapter, still in progress: ask, offering both buttons.
+       - the LIVE chapter, already finished: there is nothing to "continue" — the
+         save sits on the terminal debrief — so offer BOSHIDAN BOSHLASH only
+         rather than a Davom etish that would silently restart anyway.
+       - a chapter never played: start it. */
+  function chapterRowTap(index) {
+    var chs = G.chapters.list();
+    var ch = chs[index];
+    if (!ch) return;
+    if (ch.status !== "ready") { G.audio.bad(); return; }
+    var live = (ch.id === G.state.chapter);
+    var done = !!(G.memory.isCompleted && G.memory.isCompleted(ch.id));
+    if (live && !done) {
+      chapterMenuConfirm = ch.id;      // both buttons
+      G.audio.select();
+    } else if (done) {
+      chapterMenuStart(ch.id, true);   // completed: straight to the top
+    } else {
+      chapterMenuStart(ch.id, false);  // never played: start it
+    }
+  }
+
+  /* Can the live chapter be continued? Only if it has an unfinished save.
+     Used by the confirm row to decide whether to show "Davom etish". */
+  function chapterResumable(chapterId) {
+    if (chapterId !== G.state.chapter) return false;
+    if (G.memory.isCompleted && G.memory.isCompleted(chapterId)) return false;
+    var saved = G.memory.load();
+    return !!(saved && saved.chapter === chapterId && !saved.finished);
+  }
+
+  function drawMenuButton() { drawMenuButtons(); }
 
   function menuButtonHit() {
     var b = MENU_BTN;
     return G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
+  }
+
+  function xulButtonHit() {
+    var b = XUL_BTN;
+    return G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
+  }
+
+  /* One left-column button. Kept as a helper so the two buttons cannot drift
+     apart in size, font or hover treatment. */
+  function drawPill(b, label, opts) {
+    opts = opts || {};
+    var hover = !opts.disabled && G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
+    ctx.save();
+    G.util.roundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.fillStyle = opts.disabled ? "rgba(44,38,32,.72)"
+                  : (hover ? "rgba(217,164,76,.28)" : "rgba(68,58,47,.85)");
+    ctx.fill();
+    ctx.strokeStyle = opts.disabled ? "rgba(232,196,128,.18)"
+                    : (hover ? "rgba(232,196,128,.9)" : "rgba(232,196,128,.45)");
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.font = "bold 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = opts.disabled ? "rgba(242,223,174,.42)" : "#f2dfae";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 + 0.5);
+    ctx.restore();
+  }
+
+  function drawMenuButtons() {
+    if (!menuButtonVisible()) return;
+    drawPill(XUL_BTN, "XULOSALAR");
+    drawPill(MENU_BTN, "MENYU");
+  }
+
+  /* ---- the chapter list overlay ----------------------------------------- */
+  var CH_PANEL = { x: 150, y: 96, w: 660, h: 408 };
+
+  function drawChapterMenu() {
+    if (!chapterMenuOpen) return;
+    var chs = G.chapters.list();
+    var P = CH_PANEL;
+    chapterRowRects = [];
+    chapterActionRects = [];
+
+    // scrim, so the frozen world reads as "behind" the menu
+    ctx.save();
+    ctx.fillStyle = "rgba(12,10,8,.72)";
+    ctx.fillRect(0, 0, W, H);
+
+    G.render.panel(ctx, P.x, P.y, P.w, P.h, {
+      fill: "rgba(44,37,30,.985)", stroke: "rgba(232,196,128,.6)", radius: 12, lineWidth: 2
+    });
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = "bold 22px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "#f6e7c4";
+    ctx.fillText("BOBLAR", P.x + P.w / 2, P.y + 22);
+
+    ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "rgba(244,236,224,.55)";
+    ctx.fillText("Bobni tanlang — hozirgi bobni yana bossangiz, davom etish yoki boshidan boshlash so'raladi",
+                 P.x + P.w / 2, P.y + 54);
+
+    // rows
+    var rowX = P.x + 26, rowW = P.w - 52, rowH = 54, rowGap = 10;
+    var rowY = P.y + 86;
+    for (var i = 0; i < chs.length; i++) {
+      var ch = chs[i];
+      var y = rowY + i * (rowH + rowGap);
+      var sel = (i === chapterMenuSel);
+      var live = (ch.id === G.state.chapter);
+      var done = !!(G.memory.isCompleted && G.memory.isCompleted(ch.id));
+      var prog = (G.memory.progress && G.memory.progress()[ch.id]) || null;
+
+      chapterRowRects.push({ x: rowX, y: y, w: rowW, h: rowH, index: i });
+
+      G.render.panel(ctx, rowX, y, rowW, rowH, {
+        fill: sel ? "rgba(96,74,44,.98)" : "rgba(34,29,24,.94)",
+        stroke: sel ? "rgba(255,222,152,.95)" : (live ? "rgba(217,164,76,.42)" : "rgba(200,180,150,.20)"),
+        radius: 9, lineWidth: sel ? 2.2 : 1.3
+      });
+
+      // number badge
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(rowX + 30, y + rowH / 2, 15, 0, Math.PI * 2);
+      ctx.fillStyle = sel ? "#d9a44c" : "rgba(217,164,76,.16)";
+      ctx.fill();
+      ctx.font = "bold 14px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = sel ? "#1a1512" : "#d9a44c";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(ch.num), rowX + 30, y + rowH / 2 + 0.5);
+      ctx.restore();
+
+      // title + status, left aligned off the badge
+      ctx.save();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 15px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = sel ? "#fff5e2" : "rgba(244,236,224,.9)";
+      ctx.fillText(ch.title, rowX + 58, y + rowH / 2 - 8);
+
+      var status, statusColor;
+      if (ch.status !== "ready") {
+        status = "ma'lumotlari topilmadi"; statusColor = "rgba(200,120,100,.85)";
+      } else if (done) {
+        status = "tugatilgan" + (prog && prog.times > 1 ? " · " + prog.times + " marta" : "") +
+                 " — boshidan boshlanadi"; statusColor = "rgba(150,200,140,.9)";
+      } else if (live) {
+        status = "hozirgi bob · " + (G.state.beat || ""); statusColor = "rgba(255,222,152,.92)";
+      } else {
+        status = "hali o'ynalmagan"; statusColor = "rgba(244,236,224,.48)";
+      }
+      ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = statusColor;
+      ctx.fillText(status, rowX + 58, y + rowH / 2 + 11);
+      ctx.restore();
+    }
+
+    /* The confirm row: shown when the tapped chapter needs a decision. For the
+       LIVE chapter we offer both; for a COMPLETED (but not live) chapter the
+       only meaningful action is a fresh start, so we say so plainly. */
+    var cy = P.y + P.h - 78;
+    if (chapterMenuConfirm) {
+      var conf = null;
+      for (var c2 = 0; c2 < chs.length; c2++) if (chs[c2].id === chapterMenuConfirm) conf = chs[c2];
+      var canResume = chapterResumable(chapterMenuConfirm);
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "13px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,240,214,.9)";
+      ctx.fillText(conf ? conf.title + " — nima qilamiz?" : "", P.x + P.w / 2, cy - 22);
+      ctx.restore();
+
+      var bw = 190, bh = 40, bgap = 18;
+      var labels = canResume ? ["DAVOM ETISH", "BOSHIDAN BOSHLASH"] : ["BOSHIDAN BOSHLASH"];
+      var totalB = labels.length * bw + (labels.length - 1) * bgap;
+      var bx0 = P.x + (P.w - totalB) / 2;
+      for (var b2 = 0; b2 < labels.length; b2++) {
+        var bx = bx0 + b2 * (bw + bgap);
+        var isFresh = (labels[b2] === "BOSHIDAN BOSHLASH");
+        chapterActionRects.push({ x: bx, y: cy, w: bw, h: bh, fresh: isFresh, label: labels[b2] });
+        G.render.panel(ctx, bx, cy, bw, bh, {
+          fill: isFresh ? "rgba(96,52,44,.96)" : "rgba(56,84,52,.96)",
+          stroke: isFresh ? "rgba(226,150,130,.85)" : "rgba(160,210,150,.85)",
+          radius: 9, lineWidth: 1.8
+        });
+        ctx.save();
+        ctx.font = "bold 13px 'Segoe UI', system-ui, sans-serif";
+        ctx.fillStyle = isFresh ? "#ffe0d4" : "#e8ffe0";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(labels[b2], bx + bw / 2, cy + bh / 2 + 0.5);
+        ctx.restore();
+      }
+    } else {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(244,236,224,.5)";
+      ctx.fillText("ESC / MENYU — yopish    ·    ↑ ↓ — tanlash    ·    ENTER — ochish",
+                   P.x + P.w / 2, P.y + P.h - 32);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  /* Input for the chapter overlay. Returns true when it consumed the frame. */
+  function updateChapterMenu() {
+    chapterMenuT += 0.016;
+    var chs = G.chapters.list();
+
+    /* Mouse first: the confirm buttons are only reachable by pointer, so this
+       must be handled before any branch that returns early. Getting this order
+       wrong drew the buttons but made them dead — the panel looked fine and
+       clicking did nothing. */
+    if (G.input.mouse.clicked) {
+      for (var a = 0; a < chapterActionRects.length; a++) {
+        var ar = chapterActionRects[a];
+        if (G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, ar)) {
+          chapterMenuStart(chapterMenuConfirm, ar.fresh);
+          return true;
+        }
+      }
+      for (var r = 0; r < chapterRowRects.length; r++) {
+        var rr = chapterRowRects[r];
+        if (G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, rr)) {
+          chapterMenuSel = rr.index;
+          chapterRowTap(rr.index);
+          return true;
+        }
+      }
+      // a click inside the panel but on neither a row nor an action is a no-op
+      if (!chapterMenuHitAny()) {
+        if (chapterMenuConfirm) { chapterMenuConfirm = null; G.audio.tick(); return true; }
+        closeChapterMenu();
+        return true;
+      }
+    }
+
+    if (G.input.wasPressed("escape")) {
+      G.input.consume("escape");
+      // Escape backs out one level: confirm row first, then the menu itself.
+      if (chapterMenuConfirm) { chapterMenuConfirm = null; G.audio.tick(); return true; }
+      closeChapterMenu();
+      return true;
+    }
+
+    // keyboard navigation
+    if (chapterMenuConfirm) {
+      var canResume = chapterResumable(chapterMenuConfirm);
+      if (G.input.wasPressed("enter")) {
+        G.input.consume("enter");
+        // ENTER takes the safe default: resume when that is possible, else restart
+        if (canResume) closeChapterMenu();
+        else chapterMenuStart(chapterMenuConfirm, true);
+        return true;
+      }
+      if (G.input.wasPressed("2") || G.input.wasPressed("arrowright")) {
+        G.input.consume("2"); G.input.consume("arrowright");
+        chapterMenuStart(chapterMenuConfirm, true);
+        return true;
+      }
+      if (G.input.wasPressed("1")) {
+        G.input.consume("1");
+        if (canResume) closeChapterMenu();          // "davom etish": stay where we are
+        else chapterMenuStart(chapterMenuConfirm, true);
+        return true;
+      }
+      if (G.input.wasPressed("b")) {
+        G.input.consume("b");
+        chapterMenuStart(chapterMenuConfirm, true);
+        return true;
+      }
+      return true;
+    }
+
+    if (G.input.wasPressed("arrowdown") || G.input.wasPressed("s")) {
+      G.input.consume("arrowdown"); G.input.consume("s");
+      chapterMenuSel = (chapterMenuSel + 1) % chs.length;
+      G.audio.tick();
+    }
+    if (G.input.wasPressed("arrowup") || G.input.wasPressed("w")) {
+      G.input.consume("arrowup"); G.input.consume("w");
+      chapterMenuSel = (chapterMenuSel - 1 + chs.length) % chs.length;
+      G.audio.tick();
+    }
+    for (var i = 0; i < chs.length && i < 9; i++) {
+      if (G.input.wasPressed(String(i + 1))) {
+        G.input.consume(String(i + 1));
+        chapterMenuSel = i;
+        chapterRowTap(i);
+        return true;
+      }
+    }
+    if (G.input.wasPressed("enter") || G.input.wasPressed("space")) {
+      G.input.consume("enter"); G.input.consume("space");
+      chapterRowTap(chapterMenuSel);
+      return true;
+    }
+
+    return true;
+  }
+
+  function chapterMenuHitAny() {
+    var P = CH_PANEL;
+    return G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, P);
   }
 
   function drawTitle() {
@@ -611,6 +986,22 @@ window.G = window.G || {};
 
   window.GAME = {
     startGame: startGame,
-    getState: function () { return state; }
+    getState: function () { return state; },
+    /* test hooks for the chapter menu. The overlay is entirely canvas-drawn, so
+       the only way a probe can assert on it is through these — but they mirror
+       the real handlers exactly rather than reimplementing them. */
+    __menu: {
+      isOpen: function () { return chapterMenuOpen; },
+      open: openChapterMenu,
+      close: closeChapterMenu,
+      rows: function () { return chapterRowRects.slice(); },
+      actions: function () { return chapterActionRects.slice(); },
+      confirm: function () { return chapterMenuConfirm; },
+      sel: function () { return chapterMenuSel; },
+      tapRow: function (i) { chapterRowTap(i); },
+      startChapter: function (id, fresh) { chapterMenuStart(id, fresh); },
+      buttons: function () { return { xul: XUL_BTN, menu: MENU_BTN }; },
+      panel: function () { return CH_PANEL; }
+    }
   };
 })();

@@ -321,6 +321,15 @@ G.dialogue = (function () {
     var out = [];
     for (var i = 0; i < node.options.length; i++) {
       var o = node.options[i];
+      /* On a `multi` node a question that has already been asked is gone from
+         the menu. It used to stay listed and be drawn as "chosen", with
+         pickMulti() silently returning when it was picked again — so a click
+         on a spent question produced no feedback at all, and any driver that
+         picks by index (the playtest walker picks index 0) could spin forever
+         on the same consumed option. Filtering is the smaller, honest
+         semantic: the budget is visible in the header, the spent question is
+         spent. */
+      if (node.type === "multi" && multiPicked.indexOf(o.id) !== -1) continue;
       if (conditionMet(o.requires)) out.push({ o: o, i: i, locked: false });
       else if (o.lockedText) out.push({ o: o, i: i, locked: true });
     }
@@ -395,6 +404,14 @@ G.dialogue = (function () {
     var cb = onSceneEnd;
     onSceneEnd = null;
     scene = null; node = null; nodeId = null;
+    /* Record the completion BEFORE showing the debrief, so the in-game chapter
+       menu knows this chapter is finished the instant the player can open it.
+       recordCompletion() is idempotent (it only counts a chapter once), and it
+       is guarded because memory.js is optional in the headless harnesses. */
+    if (G.memory && G.memory.markCompleted) {
+      try { G.memory.markCompleted(G.state.chapter); } catch (e) { console.warn("progress write failed", e); }
+    }
+    if (G.state) G.state.finished = true;
     if (G.debrief) G.debrief.show();
     if (cb) cb();
   }
@@ -569,6 +586,7 @@ G.dialogue = (function () {
       ctx.save();
       ctx.font = "italic 12px 'Segoe UI', system-ui, sans-serif";
       ctx.fillStyle = "rgba(150,190,210,.85)";
+      ctx.textAlign = "left";
       ctx.fillText("ichimdan", px + 30, py + 14);
       ctx.restore();
     }
@@ -579,9 +597,13 @@ G.dialogue = (function () {
                            : "17px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = isNarration ? "#cfe2ea" : "#f0e6d8";
     ctx.textBaseline = "top";
+    /* Centred in the box, explicitly. This used to work only because an earlier
+       surface happened to leave textAlign as "center"; once that leak was fixed
+       the text became left-aligned and read as pushed into the left corner. */
+    ctx.textAlign = "center";
     var lines = G.util.wrapText(ctx, shown, pw - 68);
     for (var i = 0; i < lines.length && i < 6; i++) {
-      ctx.fillText(lines[i], px + 34, py + 36 + i * 26);
+      ctx.fillText(lines[i], px + pw / 2, py + 36 + i * 26);
     }
     ctx.restore();
 
@@ -618,8 +640,9 @@ G.dialogue = (function () {
     ctx.font = "bold 16px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "#f2dfae";
     ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
     var top = node.promptLines ? node.promptLines : null;
-    ctx.fillText(node.prompt || "", 120, qy + (top ? 24 : qh / 2));
+    ctx.fillText(node.prompt || "", W / 2, qy + (top ? 24 : qh / 2));
     ctx.restore();
 
     var count = opts.length;
@@ -659,19 +682,26 @@ G.dialogue = (function () {
 
       // text
       ctx.save();
-      // Explicit left alignment: a preceding surface (the number badge above, or
-      // any earlier draw) can leave textAlign as "center", which would centre
-      // the option on x+56 and push long choices off the left of the panel.
-      ctx.textAlign = "left";
+      /* Centre the option on the BOX's centre line, not on the space left over
+         after the number badge. The old version centred on the text column
+         (x + 56 + rest/2), which is 15px to the right of the box centre because
+         the badge on the left is wider than the lock icon on the right — close
+         enough that it read as "slightly off". The user's complaint was
+         "option texts are being pulled to the left of their box, leaving them.
+         Make it align center, like as before", so the label is now centred on
+         x + w/2 and the wrap width is trimmed enough to clear both the badge
+         (left, ends at +43) and the lock icon (right, starts at w-34). */
+      ctx.textAlign = "center";
       ctx.font = "15px 'Segoe UI', system-ui, sans-serif";
       ctx.fillStyle = locked ? "rgba(170,160,148,.55)" : (sel ? "#fff5e2" : "#e6dac8");
       ctx.textBaseline = "middle";
       var label = locked ? (o.lockedText || o.text) : o.text;
-      var lines = G.util.wrapText(ctx, label, w - 90);
+      var lines = G.util.wrapText(ctx, label, w - 130);
       if (lines.length > 1 && boxH < 52) lines = [lines[0]];
       var ly = y + boxH / 2 - (lines.length - 1) * 9;
+      var textCx = x + w / 2;
       for (var li = 0; li < lines.length; li++) {
-        ctx.fillText(lines[li], x + 56, ly + li * 18);
+        ctx.fillText(lines[li], textCx, ly + li * 18);
       }
       ctx.restore();
 
@@ -748,12 +778,16 @@ G.dialogue = (function () {
       ctx.restore();
 
       ctx.save();
+      ctx.textAlign = "center";
       ctx.font = "14px 'Segoe UI', system-ui, sans-serif";
       ctx.fillStyle = chosen ? "rgba(200,225,190,.9)" : (locked ? "rgba(170,160,148,.55)" : "#e6dac8");
       ctx.textBaseline = "middle";
       var label = locked ? (o.lockedText || o.text) : o.text;
-      var lines = G.util.wrapText(ctx, label, w - 86);
-      ctx.fillText(lines[0] + (lines.length > 1 ? "…" : ""), x + 52, y + boxH / 2);
+      /* Same rule as the choice menu: centred on the box's centre line. The
+         badge ends at +40 and the tick column starts at w-22, so the wrap width
+         is trimmed symmetrically to clear both. */
+      var lines = G.util.wrapText(ctx, label, w - 130);
+      ctx.fillText(lines[0] + (lines.length > 1 ? "\u2026" : ""), x + w / 2, y + boxH / 2);
       ctx.restore();
     }
 

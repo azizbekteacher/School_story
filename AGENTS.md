@@ -9,6 +9,51 @@ is the recipe. This file explains the machine; that one explains the procedure.
 
 ---
 
+## 0. THE FIRST RULE — update PROMPT-LIBRARY.md before you answer
+
+**Every wave ends with an edit to [PROMPT-LIBRARY.md](PROMPT-LIBRARY.md). Not
+"sometime later", not "in the next turn", not "once the tests are green" — in
+the same turn, before the final report.**
+
+The user has had to correct this more than once, in these words:
+
+> "you are again forgetting to update prompt library"
+
+That is a standing instruction with the same weight as "the game must run by
+double-clicking `index.html`". Treat a turn where code changed and
+`PROMPT-LIBRARY.md` did not as an **unfinished turn**, even if every gate is
+green and every feature works.
+
+What "update it" means, concretely:
+
+1. Append a new dated `##` section at the **top of the dated list** (below the
+   intro, above older entries — newest first is the house style).
+2. Quote the user's request **verbatim** in a blockquote. Keep their spelling and
+   typos; it is a record, not marketing copy.
+3. Say **what it establishes** — the binding decisions, not a changelog.
+4. Say **what it produced** — files, principles, gates.
+5. If a later correction changed the direction, add a `### Follow-up` subsection
+   to the same wave entry rather than a separate entry.
+6. If the wave taught a **new standing constraint**, add it to
+   [Standing constraints](#standing-constraints) at the bottom as well, so it is
+   not buried in a dated entry.
+
+**Checklist you can run before reporting:**
+
+```powershell
+# newest entry should be this wave, with today's date
+Select-String -Path PROMPT-LIBRARY.md -Pattern '^## ' | Select-Object -First 3
+```
+
+If the top hit is not this wave, the turn is not finished.
+
+A useful tell that you are about to forget: you are writing the final summary.
+**Stop, update the library first, then answer.** The library is input for the
+next model, including the next version of you — it is the only reason this
+project has survived many sessions of context loss.
+
+---
+
 ## 1. What this is
 
 A top-down 2D "GTA-like" adventure game that teaches the principles of
@@ -74,8 +119,8 @@ the whole save design (see §7) and why `memory.js` exists as a twin of
 ```
 index.html              the shell: fixed script order. The Lead owns this file.
 css/style.css           the page shell: warm palette, #stage letterbox, CRT vignette
-css/menu.css            empty placeholder (title/menu UI is drawn on canvas)
-css/hud.css             empty placeholder (HUD is drawn on canvas)
+css/menu.css            placeholder — the menu is drawn on canvas, not in CSS
+css/hud.css             the touch layer only: d-pad, action buttons, rotate hint
 memory.js               the save as a plain script — what the browser reads at file://
 memory.md               the same save, human- and model-readable
 play-stable.bat         opens a git worktree of a stable tag so play survives edits
@@ -88,8 +133,13 @@ js/data/   story learning chapter2 chapter2-learning chapters
            minigames/{gift,travel,ball,chapter2}
                                               ALL content lives here
 js/main.js                                    boot, title screen, loop, state machine (Lead)
+worker/                                       Cloudflare Worker + D1 for accounts (optional)
 tools/                                        validators, playtests, probes, audits — dev only
 ```
+
+`css/hud.css` exists only to style the DOM touch layer — the HUD itself (minimap,
+objective, trust) is canvas-drawn in `quest.js`. Don't go looking for HUD styling
+in CSS; there is none.
 
 **Content vs. logic — the distinction that matters most:**
 
@@ -103,9 +153,13 @@ tools/                                        validators, playtests, probes, aud
 - **`tools/**` and `_stable-play/` are dev-only.** They are not deployed
   (`.github/workflows/pages.yml` excludes them); the game never loads them.
 
-`js/game/account.js` is a deliberate no-op stub: Google sign-in and remote sync
-are scaffolding, and the game must behave identically without them. Do not make
-boot wait on it.
+`js/game/account.js` is the **optional** account client for the Cloudflare Worker
+in `worker/`: Google sign-in and cloud save sync. Optional is the operative word
+— with no API base configured (the default, and the only state the `file://` build
+can be in) it settles without making a single network request, and boot never
+waits on it. `G_ACCOUNT_API` overrides the base at runtime. Read
+[worker/README.md](worker/README.md) for the server side and the six manual steps;
+the client contract is in §7.1.
 
 ---
 
@@ -171,14 +225,43 @@ resolved at runtime only.
   - `title`: chapter picker (arrows or 1–9), ENTER starts, N restarts the
     selected chapter. A save only offers *continue* when `save.chapter` matches
     the selected chapter.
-  - `play`: world, dialogue, minigame overlay, notebook (TAB), HUD. The game
-    loop hands control to exactly one of notebook / minigame / dialogue /
-    free-roam, in that priority order.
+  - `play`: world, dialogue, minigame overlay, notebook (TAB), the XULOSALAR
+    overview and the MENYU chapter list. The game loop hands control to exactly
+    one of notebook / minigame / dialogue / free-roam, in that priority order.
+    - **TAB opens the notebook menu** (`js/game/notebook.js`), four Uzbek tabs:
+      `Xulosalar` (what each of your choices taught, built from
+      `learning.choiceNotes` for the ids in `G.state.choicesMade`), `Qaydlar`
+      (the player's own notes), `Ma'lumot` (intel + principles) and `Kundalik`
+      (journal, by beat). `←`/`→` switch tabs, click works too.
+    - **Qaydlar is edited in a real DOM `<textarea>`**, not on canvas: it is the
+      only way to get a phone's native keyboard and IME. It is absolutely
+      positioned over the canvas from the canvas's live scale, so it tracks the
+      letterbox on resize/rotate. `input.js` ignores key events whose target is a
+      text field — without that, typing a note moves the hero.
+    - **XULOSALAR** (on-screen button) opens the same overview the chapter-end
+      debrief shows, without ending the mission — this was MENYU's job until the
+      two-button split.
+    - **MENYU** (button, or `escape`) opens the **chapter list**: every
+      registered chapter, startable mid-game. Re-tapping the chapter you are in
+      offers `DAVOM ETISH` / `BOSHIDAN BOSHLASH`; a completed chapter restarts
+      from its first beat on one tap. Completion is tracked outside the save, in
+      `sulton.progress.v1` (`G.memory.markCompleted/isCompleted/progress`), so
+      restarting a chapter does not erase the fact that it was finished.
+      `tools/probe-chapter-menu.js` is the gate.
+      **In an overlay's update function, hit-test the pointer before branching
+      on keys** — pointer input has no second route in, and returning early on a
+      keyboard branch makes drawn buttons dead.
   - `debrief`: the teaching payoff — four tabs (`Natija`, `Tanlovlar`,
     `G'oyalar`, `Qiyinchiliklar`). Entered when a node sets
     `{ endMission: true }`.
 - **Overlays are modal by early-return**, not by z-index: `main.js` checks
   notebook → minigame → dialogue → free roam and returns after handling one.
+- **Mobile:** the same build runs on a phone. `js/core/touch.js` binds a d-pad
+  and two action buttons in `#touch-ui` (see `css/hud.css`) to the virtual key
+  layer (`G.input.pressVirtual`), so touch and keyboard share one code path. The
+  layout is landscape-first with a rotate hint. `tools/probe-mobile.js` is the
+  gate: real CDP touch emulation on an 844×390 DPR-3 phone, tapping the d-pad and
+  the action button.
 - **Determinism:** outcomes are deterministic; randomness is used only for dust
   particles and typewriter blips.
 
@@ -260,6 +343,30 @@ Choices and their gates:
   `requires.flag`. These work; prefer the documented `requires.intel` shape for
   gates at the lesson.
 
+**`multi` is the "ask several questions" node** — a question menu with a budget:
+
+```js
+{ type: "multi", prompt: "Nimani so'rasan?", max: 2, options: [
+    { id: "Q1", text: "…", intel: "intel_sick", next: "mom_a1" },
+    { id: "Q2", text: "…", intel: "intel_football", next: "mom_a2" } ] }
+```
+
+`max` is how many questions the player may ask; each picked option grants its
+`intel` and **routes to its own `next`** (the answer scene). When that answer's
+`next` points back at the `multi` node, the menu **resumes** — remaining
+questions still list, already-asked ones stay consumed — and finishes when the
+budget is spent. `dialogue.js` tracks this with a `multiReturn` marker set when
+picking and cleared on `startScene`.
+
+**This routing did not exist until recently and was a silent content-loss bug.**
+`pickMulti()` used to ignore `next` entirely and jump straight out of the menu, so
+chapter 1's mother scene asked two questions and skipped both answers — four
+reply nodes were dead and their intel arrived by accident. The validators never
+caught it because their orphan scan counts an option's `next` as an edge, so the
+answer nodes looked reachable. `tools/probe-multi.js` now plays the scene for
+real; `tools/probe-multi-next.js` statically proves every answer a `multi` option
+routes to is itself reachable. Run both after touching `multi` or that scene.
+
 ### 6.2 The learning object
 
 ```js
@@ -319,11 +426,10 @@ execution engine. Chapter 2 uses its own namespace (`C2-001`…`C2-006`).
 Routing is `entry[beat] || entry.default || first value` (`quest.js`
 `npcEntryScene`).
 
-**Chapter 1 keys `default`** (plus `report` for Nodira, so she has a different
-scene once the beat is `report`). **Chapter 2 keys `default` plus beat keys plus
-`wobble`** on every pupil. This difference is a design choice, not a bug: a
-generic walker that only looks for a beat-keyed scene cannot walk chapter 1
-(see §11).
+**Chapter 1 keys `default`** on every NPC, plus `report` for Nodira (so she has a
+different scene once the beat is `report`). **Chapter 2 keys `default` plus beat
+keys plus `wobble`** on every pupil. This difference is a design choice, not a
+bug — see §11 for what it does to the generic playtest walker.
 
 `activeWhen` (optional) hides an NPC: `{ beat }`, `{ notBeat }`, `{ beatIn: [] }`,
 `{ flag }`, `{ notFlag }`. Neither shipped chapter uses it.
@@ -364,14 +470,26 @@ The save object (from `G.memory.snapshot()`):
 
 ```js
 { v, savedAt, chapter, chapterTitle, beat, position: { x, y, facing }, zone,
-  objective, trust, trustLabel, intel, flags, notes, journal, choicesMade,
-  marks, scores, objectiveOverride, started, finished, playSeconds,
+  objective, trust, trustLabel, intel, flags, notes, journal, userNotes,
+  choicesMade, marks, scores, objectiveOverride, started, finished, playSeconds,
   summary, avgQuality, savedBy }
 ```
 
 **`chapter` is part of the save.** That is how a chapter-2 save resumes into
 chapter 2. `G.state.snapshot()/restore()` carry the state fields; `G.memory`
 wraps them with position, playtime and metadata.
+
+**`userNotes` is the player's own writing** from the menu's Qaydlar tab:
+`[{ id, text, at }]`, added/edited/deleted through `G.state.addUserNote`,
+`updateUserNote` and `removeUserNote`. It is not the same thing as `journal`,
+which the *story* writes. Distinct from `notes`, which are the scored teaching
+moments. Three note-shaped concepts, three different owners — keep them straight.
+
+`G.memory.snapshot()` lists fields **explicitly** rather than spreading
+`G.state.snapshot()`. That is deliberate (it controls what lands in the readable
+`memory.md`), but it means **a new state field is silently dropped from the save
+unless you add it in both places.** `G.state.restore()` will happily read
+`userNotes`, but it only ever sees it if `G.memory.snapshot()` passed it through.
 
 `G.state.restore()` validates every field and **rejects** bad ones rather than
 trusting the file: it returns a list of rejected field names, which `main.js`
@@ -382,6 +500,54 @@ together. `apply()` also restores the player position over the chapter spawn.
 
 Resuming mid-conversation **replays the scene** — deliberate, so an interrupted
 scene can never soft-lock you.
+
+### 7.1 The account client (`js/game/account.js`)
+
+Optional, and it must stay optional. `worker/` holds a Cloudflare Worker + D1 that
+verifies a Google ID token server-side and stores one save per account. The
+client is a **thin** layer over it:
+
+```js
+G.account.config          // { enabled, clientId, apiBase, reached, lastError }
+G.account.init()          // GET /auth/config, then GET /me if a session cookie exists
+G.account.signIn() / signOut() / deleteAccount()
+G.account.sync(save)      // PUT /save   — newest-wins, keeps the losing copy
+G.account.pull()          // GET /save
+G.account.user()          // the signed-in user, or null
+```
+
+Rules that matter if you touch it:
+
+- **`apiBase` defaults to `""`, and for the `file://` build it can never be
+  anything else.** With no base the client settles immediately without one
+  network call. `window.G_ACCOUNT_API` (or `G.account.__setApiBase`) overrides it.
+  **Boot must never await it**, and `main.js` wraps `initAccount()` so a throw
+  cannot stop the game.
+- It uses `fetch`, which is CORS-blocked from `file://`. That is fine — the game
+  is fully playable signed-out, and `verify-file-protocol.js` proves it.
+- `credentials: "include"` + `cache: "no-store"` on every request: the session is
+  an HttpOnly cookie, and a cached `/me` would lie after sign-out.
+- Sync is debounced ~4s off `G.state.onChange` and is **newest-wins by `savedAt`**,
+  never blind-overwriting. When a remote save is newer than the local one the
+  player is *offered* it, not silently overwritten.
+- Google Identity Services is loaded lazily from `https://accounts.google.com/gsi/client`
+  — the only external request in the project, and only when the API base is
+  configured. It is not an asset dependency; nothing renders without it.
+- The client never stores the Google credential. It is exchanged once at
+  `POST /auth/google` and only the session cookie comes back.
+
+The Worker has its own tests (`cd worker && node test/run.js`, 87 assertions, no
+network) and its own operator guide in `worker/README.md`. The client's **offline
+contract** is gated by `tools/probe-account.js` (17 checks): it loads the real
+`index.html` over `file://`, spies on `fetch` and `XMLHttpRequest`, and proves
+boot makes zero network requests, `G.account` is inert, every method settles
+without throwing or calling out, a forged `__setUser` cannot change chapter or
+beat, and the game still reaches play.
+
+**What is still unverified: a real sign-in.** That needs the deployed Worker, a
+live Google OAuth client and a valid ID token, so it needs Azizbek's accounts and
+cannot be automated here. Do not claim it works — say the offline contract is
+green and the online path is untested.
 
 ## 8. The chapter registry
 
@@ -490,16 +656,50 @@ What each one actually proves:
 | `test-chapters.js` | real-browser chapter switching; ch2 scores C2 principles only; ch1 unaffected afterwards |
 | `probe-hero.js N` | the hero's *screen* position is inside 960×600 (ch1 336,302; ch2 480,301) |
 
-These also exist and are green; run them for the areas they cover:
+These also exist; run them for the areas they cover. **All are green right now:**
 
 ```powershell
-node tools/audit-text.js            # real canvas metrics: text overflow — 0 over 10 surfaces
+node tools/audit-text.js            # real canvas metrics: text overflow on all 10 surfaces
+node tools/check-menu.js            # menu: 4 Uzbek tabs, Xulosalar content, notes round-trip
+node tools/probe-multi.js           # plays ch1's question scene, proves answers are reachable
+node tools/probe-multi-next.js      # static: every multi option's answer node is reachable
+node tools/probe-account.js         # account layer is inert, never breaks boot
+node tools/probe-hud.js             # minimap clear of play area, MENYU overview, copy control
+node tools/probe-mobile.js          # real CDP touch emulation: d-pad moves hero, buttons work
+node tools/probe-chapter-menu.js    # XULOSALAR/MENYU split, Davom etish / Boshidan boshlash, restart-from-top
+node tools/probe-distances.js       # ch1 gate/shop are closer, anchors still walkable
 node tools/analyze-facing.js        # hero sprite nose points the way he walks
 node tools/shots.js                 # headless screenshots -> tools/shots/
 node tools/color-inventory.js       # palette inventory
 node tools/show-contract.js         # prints the exact live data shapes
 node tools/check-pages.js           # deployed Pages build: live URL + assets + boot
 ```
+
+### `audit-text.js` and the textAlign trap
+
+`audit-text.js` was red for a while (`60 overflow`) after `93b36c8` moved the shop
+and gate east. That was a real regression, and chasing it found **five** bugs, all
+of the same shape: **a draw function assumed `textAlign` was `"left"` while an
+earlier surface had left it `"center"`.** Canvas `textAlign` is sticky across
+draw calls, and `ctx.save()/restore()` only protects you if every surface actually
+sets it. Centred text drawn at an explicit left-hand `x` extends `width/2` to the
+left, which pushed the mission objective, every long dialogue choice, the debrief
+header and all four debrief page bodies off the left edge of their panels.
+
+**The rule: if you `fillText` at an `x` you computed by adding a left margin, set
+`ctx.textAlign = "left"` first.** Do not assume the previous surface restored it.
+
+The same audit also caught two genuine world-layer issues:
+
+- NPC name tags are now clamped inside the 960px viewport (`world.js`). A pupil
+  standing near the screen edge used to have their name cut in half.
+- `world.js drawDecor()` culls decor outside the camera. Off-camera decor was
+  still being drawn under the camera translate — wasted work, and the reason the
+  audit kept reporting the shop sign, which legitimately scrolls into view.
+
+Do not "fix" a red audit by loosening its thresholds. It measures real canvas
+metrics against a 960×600 viewport; a red result means a player can see the
+problem.
 
 Useful argument forms: `playtest.js --strategy=random`, `--verbose`.
 
@@ -551,14 +751,21 @@ class of mistake (assuming a browser global in code that boot loads under
 { beat: "staffroom", goto: ["staffroom", 0], npc: "abubakr" }, …
 ```
 
-Chapter 1's NPCs key only `entry.default`, plus Nodira's `report`. A **generic**
-walker (the `advanceWorldGeneric()` path used for chapters after ch1) looks for
-an NPC whose `entry` is keyed to the current beat, and chapter 1 has none — so
-the generic walker cannot finish chapter 1. This is why `test-chapters.js`
-comments that chapter 1 "keeps its beat→NPC map in the playtest harness".
+Chapter 1's NPCs key `entry.default` on all five, plus `report` on Nodira only.
+A **generic** walker (the `advanceWorldGeneric()` path used for chapters after
+ch1) advances a beat by finding an NPC whose `entry` is keyed to the current
+beat, then by entering a trigger zone, then by sweeping every zone. For chapter 1
+only the `report` beat has a keyed NPC — every other beat has no beat-keyed NPC
+and no trigger for it either, so the generic walker stalls. That is why the plan
+above exists: it is data the game itself does not contain. `test-chapters.js`
+says as much: chapter 1 "keeps its beat→NPC map in the playtest harness".
+
 Do not "clean this up" by deleting `BEAT_PLAN`: chapter 1 would stop being
-verifiable. If you add a chapter, the generic path is what will exercise it, so
-make sure its NPCs *do* key beats (chapter 2 does).
+verifiable. If you add a chapter, the generic path is what will exercise it — so
+give your NPCs beat-keyed entries for the beats where they matter, and give every
+remaining beat a trigger. Chapter 2 does both: `names`/`rules` are NPC-keyed,
+`wobble` is NPC-keyed on all six pupils, and `before`/`door`/`open`/`task`/`exit`
+are delivered by triggers.
 
 ### Chapter 1's spawn and camera must not be overridden
 
@@ -642,6 +849,13 @@ From `PROMPT-LIBRARY.md`; these are not renegotiated per task.
 8. **Style:** Uzbek for in-game text — warm, plain, adult, no exclamation-mark
    cheerfulness, **ASCII apostrophes** (`o'`, `g'`). Teaching content may mix
    English terms where a real Uzbek teacher would.
+9. **Every menu surface works by pointer *and* by keyboard, and both are tested
+   separately.** The HUD is canvas-drawn, so a menu can look correct and be
+   untouchable. In an overlay's update function, hit-test the pointer **before**
+   branching on keys — pointer input has no second route into the surface.
+   And a probe that dispatches a synthetic `keydown` without a matching `keyup`
+   fires exactly once and then goes dead, because `input.js` sets `pressed[k]`
+   only when `!down[k]`.
 
 ## 13. Working discipline
 
@@ -686,7 +900,120 @@ honest omission is worth more than a confident claim.
 
 ---
 
-## 14. Where to look first
+## 14. Production deploy: GitHub Pages *and* Coolify
+
+There are **two** deploys of the same static site, and they are not the same thing.
+
+| | GitHub Pages | Coolify |
+|---|---|---|
+| URL | https://azizbekteacher.github.io/School_story/ | http://3jh6dtoqcwuhghpx7wggj57l.169.58.215.190.sslip.io |
+| Triggered by | push to `master` (`.github/workflows/pages.yml`) | **manual** — no webhook is wired (see gotcha 4) |
+| Serves | repo root **minus** `.git`, `.github`, `tools/`, `_stable-play/`, `play-stable.bat` | repo root, so `tools/` and `play-stable.bat` **are** publicly reachable |
+
+[GitHub Pages](https://azizbekteacher.github.io/School_story/) is the
+player-facing one. The Coolify copy is a self-hosted mirror on the user's own
+VPS. A change is not "deployed" until you have pushed to `master`, whatever
+Coolify says — Coolify clones from GitHub, never from your disk.
+
+### The instance
+
+| Item | Value |
+|---|---|
+| Dashboard | `http://169.58.215.190:8000` (Coolify `4.4.7`) |
+| Host | `vmi3524831` — Docker 29.7.2; reverse proxy is `coolify-proxy` (Traefik v3.6) |
+| Server uuid | `hfgx8josjctjmxlvanv4ig3r` |
+| Project | **School story** — uuid `fwmu7asdhngigjne9mwx3hti` |
+| Environment | `production` — uuid `olxcarr1pigufbjxbnc4vjic` |
+| Application | `school_story:main-mpj3oqzlwhs6bwkv9ipn6gkg` — uuid `3jh6dtoqcwuhghpx7wggj57l` |
+| Source | `github.com/azizbekteacher/School_story`, branch `master` |
+| Build | build pack `static` → `nginx:alpine`, container port **80** |
+
+The application name is auto-generated by Coolify's "add public repo" flow from
+`<repo>:<branch>-<hash>`; it is **not** the project name and it does not mean the
+repo lives somewhere else. One repo, one app, and it already sits in
+**School story** — do not go looking for it under `Bots` or `Tilsevar`.
+
+### Credentials — where they are, never what they are
+
+**This repository is public.** Never commit a token, and never paste one into
+`AGENTS.md`, `PROMPT-LIBRARY.md`, a commit message or a chat report — see
+Standing constraint 2. Document the *location*; read the value only when a
+command needs it.
+
+| Credential | Lives at (local only, outside the repo) | Used for |
+|---|---|---|
+| Coolify API token (root) | `~/.config/coolify/api_token` | REST calls to `/api/v1` |
+| Root SSH key | `~/.ssh/coolify_localhost` | `ssh coolify` → full root on the VPS |
+| SSH alias | `Host coolify` in `~/.ssh/config` | `ssh coolify` |
+
+That SSH key is Coolify's own "localhost" server key, so it has full root on the
+host. Use it to **inspect** production (`docker ps`, `docker logs`, `/data/coolify`),
+not to hand-patch it — real deploys go through Coolify.
+
+```powershell
+# read the token without printing it
+$h = @{ Authorization = "Bearer $((Get-Content "$env:USERPROFILE\.config\coolify\api_token").Trim())"; Accept = "application/json" }
+
+# what the app is doing
+Invoke-RestMethod "http://169.58.215.190:8000/api/v1/applications/3jh6dtoqcwuhghpx7wggj57l" -Headers $h |
+  Select-Object status, git_branch, build_pack, ports_exposes, fqdn
+```
+
+```powershell
+# deploy current origin/master — POST, not GET
+Invoke-RestMethod "http://169.58.215.190:8000/api/v1/deploy?uuid=3jh6dtoqcwuhghpx7wggj57l&force=false" `
+  -Headers $h -Method Post -Body '{}'
+```
+
+`GET /deploy` returns **405** with *"This endpoint has changed to a POST request."*
+A healthy deploy ends `status: finished`; then fetch the `sslip.io` URL and look
+for `Sulton School` in the HTML.
+
+### Gotchas that have already bitten this app
+
+Every one of these produced a resource that looked correctly configured in the UI
+and still did not serve a page. Check them in this order when the site is down.
+
+1. **Branch `main` vs `master`.** The repo's only branch is `master`; the app was
+   created pointing at `main`, so every build died in four seconds with
+   *"Remote branch main not found in upstream origin."* The default branch of the
+   repository is the only correct value here.
+2. **Build pack `railpack` vs `static`.** The repo has no `package.json` and no
+   build step — it is hand-written HTML/CSS/JS. `static` is correct; a language
+   build pack will try to install dependencies that do not exist.
+3. **Port 3000 vs 80.** Coolify defaults new apps to `3000`. `nginx:alpine` listens
+   on **80**. Fixing `ports_exposes` was **not** enough: Coolify had frozen the old
+   port into `custom_labels`, a **base64-encoded** blob holding
+   `...loadbalancer.server.port=3000` and `caddy_0...{{upstreams 3000}}`. Stored
+   labels are re-applied on every deploy and override the config, so the container
+   kept routing to a closed port and the edge returned **502**. Change the port in
+   the UI *and* regenerate those labels, or the fix silently reverts. Diagnose on
+   the host: `docker inspect <container> --format '{{json .Config.Labels}}'`.
+4. **Auto-deploy is enabled but inert.** `is_auto_deploy_enabled` is `true`, yet
+   the GitHub repo has **zero webhooks** (`gh api repos/azizbekteacher/School_story/hooks`
+   → `[]`) and the source is the anonymous "Public GitHub" app, not an installed
+   GitHub App. Nothing notifies Coolify on push. Treat every deploy as manual:
+   push to `master` for Pages, then POST `/deploy` for Coolify.
+5. **Coolify builds from GitHub, not your working tree.** Local commits that have
+   never been pushed do not exist for Coolify. This file itself 404'd on the
+   Coolify URL while local `master` was four commits ahead of `origin/master`.
+   `git status` being clean does not mean it is deployed — check
+   `git rev-list --left-right --count origin/master...HEAD`.
+6. **Static pack copies the whole repo.** `tools/`, `play-stable.bat` and every
+   `.md` in the root are reachable on the Coolify URL, because only `.git`,
+   `Dockerfile`, `docker-compose.yaml` and `.env` are stripped. GitHub Pages is
+   the deploy that excludes dev-only material, so do not treat the Coolify URL as
+   the "clean" one.
+
+### `master` is a live deploy on both targets
+
+There is no build to gate, so the gate is §10 (`node tools/validate.js`,
+`node tools/check-pages.js`) and it must pass before you push — `master` is what
+both deployments serve.
+
+---
+
+## 15. Where to look first
 
 | You want… | Read |
 |---|---|
@@ -699,5 +1026,6 @@ honest omission is worth more than a confident claim.
 | what a correct chapter looks like | `tools/validate-chapter2.js`, `js/data/chapter2.js` |
 | the player-facing story | [README.md](README.md) |
 | deploy / live URL | [DEPLOY.md](DEPLOY.md) |
+| the Coolify mirror, its credentials' locations, and its gotchas | §14 above |
 
 *"Service is black and white. Hospitality is colour."*

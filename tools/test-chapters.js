@@ -264,15 +264,19 @@ const AUTOPLAY = (maxSteps) => `(async function () {
     check(S.beat === "before", "started on the chapter-2 first beat");
     check(S.pos.x === Math.round(S.corridorAnchor.x) && S.pos.y === Math.round(S.corridorAnchor.y),
       `spawned on the corridor anchor (${S.pos.x},${S.pos.y})`);
-    check(S.learningPrinciples.length === 6 && S.learningPrinciples.every(p => /^C2-/.test(p)),
-      "chapter 2's own learning set is live (6 C2 principles)");
+    // The chapter's own learning set must be live, and it must be chapter 2's.
+    // Asserting a fixed count was wrong the moment the chapter started teaching
+    // more than six principles (the user asked for exactly that: "don't restrain
+    // from teaching many principles"). Assert the namespace and a floor instead.
+    check(S.learningPrinciples.length >= 6 && S.learningPrinciples.every(p => /^C2-/.test(p)),
+      "chapter 2's own learning set is live (" + S.learningPrinciples.length + " C2 principles)");
 
     const run2 = JSON.parse(await ev(AUTOPLAY(6000)));
     console.log(JSON.stringify({ reachedDebrief: run2.reachedDebrief, stall: run2.stall, steps: run2.steps, says: run2.says, choices: run2.choices, minigames: run2.minigames, beat: run2.beat, trust: run2.trust, notes: run2.notes, markedPrinciples: run2.principleIds.length }, null, 0));
     check(run2.reachedDebrief, "chapter 2 reaches the debrief");
     check(run2.chapter === "ch2", "still in chapter 2 at the end");
     check(run2.minigames.length >= 1, "played at least one chapter-2 minigame (" + run2.minigames.join(", ") + ")");
-    check(run2.minigames.every(m => ["firstNinety", "registerRun"].indexOf(m) >= 0), "only chapter-2 minigames ran");
+    check(run2.minigames.every(m => ["firstNinety", "registerRun", "complimentRun"].indexOf(m) >= 0), "only chapter-2 minigames ran");
     check(run2.principleIds.length > 0 && run2.principleIds.every(p => /^C2-/.test(p)), "only C2 principles scored (" + run2.principleIds.join(", ") + ")");
     check(run2.beat === "done", "final beat is 'done'");
 

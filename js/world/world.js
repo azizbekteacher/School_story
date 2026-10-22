@@ -400,6 +400,80 @@ G.world = (function () {
           ctx.fill();
           ctx.restore();
           break;
+        /* A small vase of flowers. Added for chapter 2's classroom: the user
+           asked for "flowers" and for the room to feel like a room people
+           actually inhabit. Deliberately tiny — a stem, a bloom, a pot — because
+           at 32px tiles a detailed flower reads as noise. */
+        case "flowers":
+          ctx.save();
+          /* vase */
+          ctx.fillStyle = "#9a7250";
+          ctx.beginPath();
+          ctx.moveTo(d.x - 4, d.y - 2);
+          ctx.lineTo(d.x + 4, d.y - 2);
+          ctx.lineTo(d.x + 2, d.y + 5);
+          ctx.lineTo(d.x - 2, d.y + 5);
+          ctx.closePath();
+          ctx.fill();
+          /* three stems and blooms */
+          var fcols = ["#d9536a", "#e8b44c", "#c96a9e"];
+          for (var fi = 0; fi < 3; fi++) {
+            var fx0 = d.x + (fi - 1) * 4;
+            var fh = 9 + fi * 2;
+            ctx.strokeStyle = "#4f6b3c";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y - 2);
+            ctx.lineTo(fx0, d.y - 2 - fh);
+            ctx.stroke();
+            ctx.fillStyle = fcols[fi];
+            ctx.beginPath();
+            ctx.arc(fx0, d.y - 2 - fh, 2.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,246,220,.55)";
+            ctx.beginPath();
+            ctx.arc(fx0, d.y - 2 - fh, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+          break;
+        /* A window: two panes and a sill, with a soft sky wash. The classroom's
+           east wall needed something that was not wall. */
+        case "window":
+          ctx.save();
+          ctx.fillStyle = "rgba(150,196,214,.20)";
+          ctx.fillRect(d.x, d.y, d.w, d.h);
+          ctx.strokeStyle = "rgba(217,164,76,.45)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(d.x, d.y, d.w, d.h);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(d.x + d.w / 2, d.y);
+          ctx.lineTo(d.x + d.w / 2, d.y + d.h);
+          ctx.moveTo(d.x, d.y + d.h / 2);
+          ctx.lineTo(d.x + d.w, d.y + d.h / 2);
+          ctx.stroke();
+          /* sill */
+          ctx.fillStyle = "rgba(217,164,76,.30)";
+          ctx.fillRect(d.x - 3, d.y + d.h, d.w + 6, 3);
+          ctx.restore();
+          break;
+        /* A handful of tiny wrapped gifts — the chapter's motif, made physical.
+           Small enough to read as "things on a shelf" rather than loot. */
+        case "gifts":
+          ctx.save();
+          var gcols = ["#b8564e", "#4e7ab8", "#c8a24a", "#5d8a5a"];
+          for (var gi = 0; gi < 4; gi++) {
+            var gx = d.x + (gi % 2) * 11;
+            var gy = d.y + Math.floor(gi / 2) * 10;
+            ctx.fillStyle = gcols[gi];
+            ctx.fillRect(gx, gy, 8, 7);
+            ctx.fillStyle = "rgba(255,240,200,.55)";
+            ctx.fillRect(gx + 3, gy, 2, 7);
+            ctx.fillRect(gx, gy + 3, 8, 1);
+          }
+          ctx.restore();
+          break;
         case "fountain":
           ctx.save();
           ctx.fillStyle = "rgba(140,200,220,.18)";

@@ -402,12 +402,19 @@ if (L) {
   const principles = L.principles || {};
   principleIds = Object.keys(principles);
 
-  // 6 new principles, ids C2-001..C2-006
-  if (principleIds.length !== 6) err(`expected 6 principles, found ${principleIds.length}`);
+  // Principles are C2-001..C2-0NN, contiguous and in order.
+  // The cap is 10: the wave that rewrote this chapter asked explicitly for
+  // "don't restrain from teaching many principles", so the contract is a range
+  // rather than a fixed six. What still holds is that the ids are contiguous,
+  // ordered, and every one is referenced by real content — a principle that
+  // nothing teaches is decoration, not teaching.
+  if (principleIds.length < 6 || principleIds.length > 10) {
+    err(`expected 6-10 principles, found ${principleIds.length}`);
+  }
   principleIds.forEach((pid, i) => {
     const p = principles[pid];
-    const want = "C2-00" + (i + 1);
-    if (pid !== want) err(`principle ids should be C2-001..C2-006 in order; found "${pid}" at position ${i}`);
+    const want = "C2-0" + (i + 1 < 10 ? "0" + (i + 1) : (i + 1));
+    if (pid !== want) err(`principle ids should be contiguous from C2-001 in order; found "${pid}" at position ${i}`);
     if (p.id !== pid) err(`principles["${pid}"].id is "${p.id}"`);
     ["name", "source", "gist"].forEach(k => {
       if (typeof p[k] !== "string" || !p[k].trim()) err(`principles["${pid}"].${k} missing`);

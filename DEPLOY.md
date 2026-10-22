@@ -76,3 +76,66 @@ workflow without a new commit:
 ```powershell
 gh workflow run pages.yml --repo azizbekteacher/School_story
 ```
+
+## The account service (optional, separate deploy)
+
+The game itself needs nothing beyond the static site above. Accounts and
+cross-device save live in `worker/` and are deployed separately to Cloudflare —
+they are not part of the Pages build and never block it.
+
+**The game runs identically without it.** With no API base configured the client
+makes no network requests at all, which is the only possible state for the
+`file://` build.
+
+### What is already done
+
+- `worker/` exists and is committed: a Cloudflare Worker in modules format with
+  D1 storage (`users`, `sessions`, `saves`), Google ID-token verification with
+  WebCrypto RS256, hashed session tokens in HttpOnly cookies, and an origin
+  allowlist. `cd worker && node test/run.js` → **87 passed, 0 failed**, with no
+  network access.
+- `js/game/account.js` is the matching client.
+
+### What only Azizbek can do
+
+These need his accounts and cannot be automated:
+
+1. **Google Cloud Console** → create an OAuth 2.0 **Web** client. Authorised
+   JavaScript origins: `https://azizbekteacher.github.io` and
+   `http://localhost:8788` for local work. Copy the **client id** — it is public.
+   The client secret is not used by this flow and must not be committed.
+2. **`wrangler login`** with the Cloudflare account.
+3. **`cd worker && wrangler d1 create school-story-db`** → paste the returned
+   `database_id` into `worker/wrangler.toml`.
+4. **`wrangler d1 execute school-story-db --remote --file=schema.sql`** to create
+   the tables.
+5. **`wrangler secret put GOOGLE_CLIENT_ID`** and paste the client id.
+6. **`wrangler deploy`** → note the `*.workers.dev` URL.
+7. **Point the game at it**: set `window.G_ACCOUNT_API` (in the Pages build, add
+   it to `index.html` or a small config script) to the Worker URL, then commit
+   and push so Pages redeploys.
+
+`worker/README.md` has the same steps with more detail, plus the request
+contract and the security notes.
+
+### Verifying it
+
+```powershell
+node tools/probe-account.js      # the client's offline contract
+cd worker; node test/run.js      # the server's contract (no network)
+node tools/check-pages.js        # the static deploy is still healthy
+```
+
+`probe-account.js` proves the property that actually keeps the game playable: the
+account layer is **inert** unless a Worker is configured. It loads the real
+`index.html` over `file://`, spies on every `fetch` and `XMLHttpRequest`, and
+asserts boot makes **zero** network requests; that `G.account` reports itself
+unavailable with no user; that `init`, `signIn`, `pull`, `sync`, `signOut` and
+`deleteAccount` all settle without throwing and without making a call; that a
+forged `__setUser` cannot change chapter or beat; and that the game still reaches
+play afterwards. 17 checks.
+
+**What is still unverified, honestly:** a real sign-in. That needs the deployed
+Worker, a live Google OAuth client and a valid ID token. The server side is
+covered by its own suite; the client's *online* half is covered by nothing. First
+time you deploy, sign in once with both consoles open.

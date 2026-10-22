@@ -20,6 +20,14 @@ const map = G.map;
 const story = G.data.story;
 const T = map.T;
 
+/* The tile grid is filled in by map.build(), which main.js calls at boot. In
+   this vm sandbox nothing has called it yet, so without this line every tile
+   reads as `undefined`, BLOCKED[undefined] is false, and every walkability and
+   flood-fill assertion below passes while testing nothing at all. Calling it is
+   what makes this probe an actual test. (It was missing: the walkability
+   section was green for months because the grid was empty.) */
+map.build();
+
 // Distances BEFORE the move, in tiles, measured from the classroom anchor.
 const BEFORE = { gate: 44.2, shop: 56.5 };
 

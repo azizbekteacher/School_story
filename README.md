@@ -22,12 +22,47 @@ No server, no build step, no npm, no network. It runs from `file://` in any mode
 | `E` / `Space` | talk, advance, interact |
 | `1`–`4` or `↑ ↓` + `Enter` | pick a dialogue option |
 | `Space` | strike the ball / continue |
-| `TAB` | notebook (what you learned, what you chose, principles met) |
-| `Esc` | close notebook |
+| `TAB` | open the menu (notes, insights, intel, journal) |
+| `←` `→` | switch menu tabs |
+| `N` | write a new note (inside the `Qaydlar` tab) |
+| `Esc` / `MENYU` button | open the chapter list (change or restart a chapter) |
+| `XULOSALAR` button | open the coaching overview without ending the chapter |
 | `M` | save now |
 | `F` | let the game write `memory.md` by itself (pick the folder once) |
 
+**The two HUD buttons.** `XULOSALAR` shows the same four-tab overview you get at
+the end of a chapter, but without ending anything — it is how you check what you
+have learned mid-mission. `MENYU` (or `Esc`) opens the **chapter list**, so you no
+longer have to reload the page to switch chapters. Tap the chapter you are in and
+the game asks: `DAVOM ETISH` (keep going) or `BOSHIDAN BOSHLASH` (start over). A
+chapter you have already finished restarts from its first scene on one tap — a
+completed run has nothing left to resume. Restarting does not erase the record
+that you finished it; the list still says `tugatilgan`.
+
+**The menu (`TAB`) has four tabs, in Uzbek:**
+
+- `Xulosalar` — what each of your choices actually taught. This is the point of
+  the chapter: it pairs the interaction you had with the insight behind it, why
+  it mattered, what it cost, and what to do instead.
+- `Qaydlar` — your own notes. Add, edit and delete them; they are saved with the
+  game and are there when you come back.
+- `Ma'lumot` — what you learned from people, and the principles you met.
+- `Kundalik` — the day, in order.
+
 The debrief at the end has four tabs: `Natija` (result), `Tanlovlar` (your choices), `G'oyalar` (things you could do Monday), `Qiyinchiliklar` (why they are hard).
+
+### On a phone
+
+The same `index.html` works on a phone — open the GitHub Pages URL and rotate to
+landscape. A d-pad and two action buttons appear at the bottom of the screen, and
+they drive exactly the same controls as the keyboard. There is nothing to install.
+
+### Signing in (optional)
+
+Signing in with Google keeps your progress across devices. It is genuinely
+optional: without it the game saves to your browser as it always has, and works
+with no network at all. See [worker/README.md](worker/README.md) if you want to
+host the account service yourself.
 
 ---
 
@@ -191,7 +226,7 @@ js/world/world.js           camera, movement, NPC instances, drawing
 js/game/state.js            flags, intel, trust, beat, notes, journal, scores
 js/game/minigames.js        minigame host: overlay, input routing, finish contract
 js/game/dialogue.js         scene interpreter, effects, gating, typewriter
-js/game/notebook.js         TAB overlay — intel / journal / principles
+js/game/notebook.js         TAB menu — insights / own notes / intel / journal
 js/game/quest.js            HUD, minimap, zone triggers, interaction
 js/game/debrief.js          the teaching payoff, four tabs
 js/game/memory.js           save/resume: memory.md, memory.js, localStorage

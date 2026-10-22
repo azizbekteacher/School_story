@@ -35,23 +35,37 @@ G.map = (function () {
   var ZONES = [
     { id: "street",    x: 0,   y: 0,   w: 18 * T, h: 40 * T },
     { id: "gate",      x: 24 * T, y: 24 * T, w: 6 * T, h: 14 * T },
-    { id: "shop",      x: 34 * T, y: 22 * T, w: 11 * T, h: 11 * T },
-    { id: "yard",      x: 18 * T, y: 0,   w: 27 * T, h: 40 * T },
-    { id: "corridor",  x: 46 * T, y: 20 * T, w: 3 * T, h: 17 * T },
-    { id: "corridor2", x: 46 * T, y: 34 * T, w: 17 * T, h: 4 * T },
-    { id: "staffroom", x: 50 * T, y: 20 * T, w: 7 * T, h: 13 * T },
-    { id: "classroom", x: 58 * T, y: 20 * T, w: 5 * T, h: 13 * T }
+    { id: "shop",      x: 52 * T, y: 12 * T, w: 7 * T,  h: 6 * T },
+    { id: "yard",      x: 18 * T, y: 0,   w: 45 * T, h: 40 * T },
+    { id: "corridor",  x: 44 * T, y: 20 * T, w: 3 * T, h: 17 * T },
+    { id: "corridor2", x: 44 * T, y: 34 * T, w: 19 * T, h: 4 * T },
+    { id: "staffroom", x: 48 * T, y: 20 * T, w: 7 * T, h: 13 * T },
+    // The classroom is the room the player spends most of chapter 2 in, so it
+    // was widened from 5 to 7 tiles (160px -> 224px of a 960px view). The space
+    // came from moving the whole school 2 tiles west, NOT from shrinking the
+    // staffroom: chapter 1 lives in the staffroom and is a fixed point.
+    { id: "classroom", x: 56 * T, y: 20 * T, w: 7 * T, h: 13 * T }
   ];
 
   // Named anchors used by the story data (zone + index -> pixel position)
   var ANCHORS = {
     staffroom: [
-      { x: 52, y: 24 }, { x: 55, y: 27 }, { x: 52, y: 30 },
-      { x: 54, y: 22 }, { x: 51, y: 26 }, { x: 55, y: 23 }
+      { x: 50, y: 24 }, { x: 53, y: 27 }, { x: 50, y: 30 },
+      { x: 52, y: 22 }, { x: 49, y: 25 }, { x: 53, y: 23 }
     ],
+    // Classroom anchors now spread over a 7x13 room (x56..62 interior). Six is
+    // still the contract; they are simply spread wider so the six pupils of 5-B
+    // do not stand on top of each other, and so "walk the room" is a real walk.
+    //
+    // Every one of these must be a WALKABLE tile: desks are in BLOCKED, and the
+    // desk bank sits at x57/59/61 × y22/25/28 with the teacher's table at
+    // x56,y21-22. Two of these anchors originally landed on desk tiles (Oqil in
+    // the staffroom, Bekzod and Jasur in the classroom), which drew them standing
+    // on the furniture. probe-distances.js and tools/_geom were both blind to it
+    // because neither called map.build() — see the note in probe-distances.js.
     classroom: [
-      { x: 60, y: 28 }, { x: 60, y: 24 }, { x: 59, y: 22 },
-      { x: 61, y: 30 }, { x: 60, y: 26 }, { x: 59, y: 29 }
+      { x: 59, y: 27 }, { x: 59, y: 23 }, { x: 58, y: 21 },
+      { x: 62, y: 30 }, { x: 61, y: 24 }, { x: 57, y: 29 }
     ],
     gate: [
       { x: 29, y: 35 }, { x: 28, y: 32 }, { x: 27, y: 36 },
@@ -62,16 +76,20 @@ G.map = (function () {
       { x: 28, y: 14 }, { x: 31, y: 28 }, { x: 22, y: 30 }
     ],
     shop: [
-      { x: 37, y: 26 }, { x: 39, y: 26 }, { x: 41, y: 26 },
-      { x: 37, y: 28 }, { x: 39, y: 28 }, { x: 41, y: 28 }
+      { x: 55, y: 14 }, { x: 55, y: 15 }, { x: 54, y: 16 },
+      { x: 56, y: 16 }, { x: 57, y: 14 }, { x: 54, y: 14 }
     ],
     street: [
       { x: 10, y: 30 }, { x: 8, y: 22 }, { x: 12, y: 18 },
       { x: 9, y: 36 }, { x: 6, y: 26 }, { x: 13, y: 24 }
     ],
+    // The corridor is an L: a vertical leg (x44..46) and a horizontal leg
+    // (corridor2, y34..37). Both are "corridor" for logic, so anchors 1/2/3 and
+    // 5 legitimately sit in the horizontal leg — that is why they carry y35/36.
+    // The vertical-leg anchors moved west with the building (x47 -> x45).
     corridor: [
-      { x: 47, y: 30 }, { x: 47, y: 35 }, { x: 52, y: 35 },
-      { x: 58, y: 35 }, { x: 47, y: 24 }, { x: 55, y: 36 }
+      { x: 45, y: 30 }, { x: 45, y: 35 }, { x: 52, y: 35 },
+      { x: 58, y: 35 }, { x: 45, y: 24 }, { x: 55, y: 36 }
     ]
   };
 
@@ -140,78 +158,153 @@ G.map = (function () {
     fillRect(0, 0, 1, ROWS, TILE.WALL);
     fillRect(COLS - 1, 0, 1, ROWS, TILE.WALL);
 
-    // ============ (the shop moved beside the school — see below) ============
+    // ============ (the shop is north of the school now — see below) ============
 
-    // ============ SCHOOL BUILDING (x45..63, y19..38) ============
-    fillRect(45, 19, 19, 20, TILE.WALL);
-    clearRect(46, 20, 17, 17, TILE.FLOOR);
+    // ============ SCHOOL BUILDING (x43..63, y19..38) ============
+    // Widened 2 tiles west (was x45..63) to give the classroom a 7-tile width.
+    // The yard is 45 tiles wide so there is room; nothing in chapter 1 depends
+    // on the building's west edge except the outer door, which moved with it.
+    fillRect(43, 19, 21, 20, TILE.WALL);
+    clearRect(44, 20, 19, 17, TILE.FLOOR);
 
     // corridor L
-    fillRect(46, 34, 17, 3, TILE.CARPET);   // horizontal
-    fillRect(46, 20, 3, 17, TILE.CARPET);    // vertical
+    fillRect(44, 34, 19, 3, TILE.CARPET);   // horizontal
+    fillRect(44, 20, 3, 17, TILE.CARPET);    // vertical
 
-    // staffroom box  x49..57, y19..33
-    strokeRect(49, 19, 9, 15, TILE.WALL);
-    clearRect(50, 20, 7, 13, TILE.FLOOR);
+    // staffroom box  x47..55, y19..33  (same 7x13 interior as before, moved west)
+    strokeRect(47, 19, 9, 15, TILE.WALL);
+    clearRect(48, 20, 7, 13, TILE.FLOOR);
     // staffroom door (south wall)
+    set(50, 33, TILE.DOOR);
+    set(51, 33, TILE.DOOR);
     set(52, 33, TILE.DOOR);
-    set(53, 33, TILE.DOOR);
-    set(54, 33, TILE.DOOR);
 
-    // classroom box x57..63, y19..33
-    strokeRect(57, 19, 6, 15, TILE.WALL);
-    clearRect(58, 20, 5, 13, TILE.FLOOR);
+    // classroom box x55..63, y19..33 — 7x13 interior (was 5x13)
+    strokeRect(55, 19, 9, 15, TILE.WALL);
+    clearRect(56, 20, 7, 13, TILE.FLOOR);
     // classroom door (south wall)
+    set(58, 33, TILE.DOOR);
     set(59, 33, TILE.DOOR);
     set(60, 33, TILE.DOOR);
-    set(61, 33, TILE.DOOR);
 
     // school outer door (west wall) -> yard path
-    set(45, 35, TILE.DOOR);
-    set(45, 36, TILE.DOOR);
+    set(43, 35, TILE.DOOR);
+    set(43, 36, TILE.DOOR);
 
     // staffroom furniture: table + chairs + cabinet
-    fillRect(51, 22, 3, 2, TILE.DESK);
-    fillRect(51, 26, 2, 1, TILE.DESK);
-    fillRect(55, 30, 1, 1, TILE.SHELF);
-    decor.push({ type: "rug", x: 50 * T, y: 24 * T, w: 6 * T, h: 5 * T, color: "#3d4a52" });
-    decor.push({ type: "board", x: 53 * T, y: 19 * T + 2, w: 3 * T, h: 10, text: "JADVAL" });
-    decor.push({ type: "plant", x: 50 * T + 10, y: 31 * T });
-    decor.push({ type: "plant", x: 56 * T + 6, y: 21 * T });
+    fillRect(49, 22, 3, 2, TILE.DESK);
+    fillRect(49, 26, 2, 1, TILE.DESK);
+    fillRect(53, 30, 1, 1, TILE.SHELF);
+    decor.push({ type: "rug", x: 48 * T, y: 24 * T, w: 6 * T, h: 5 * T, color: "#3d4a52" });
+    decor.push({ type: "board", x: 51 * T, y: 19 * T + 2, w: 3 * T, h: 10, text: "JADVAL" });
+    decor.push({ type: "plant", x: 48 * T + 10, y: 31 * T });
+    decor.push({ type: "plant", x: 54 * T + 6, y: 21 * T });
 
-    // classroom: desks in rows + blackboard
-    var dx, dy;
-    for (dy = 0; dy < 3; dy++) {
-      for (dx = 0; dx < 2; dx++) {
-        fillRect(59 + dx * 2, 22 + dy * 3, 1, 1, TILE.DESK);
+    /* ---- classroom interior (x56..62, y20..32) --------------------------
+       The user's words: "make classroom bigger — both in size and in assets:
+       blackboard, mini gifts, teacher table, flowers — it should really feel
+       like a classroom — bcs most of my time will be spent there."
+
+       So this is not just a bigger empty box. Reading it as a real room:
+         north wall  — the blackboard, full width, with a chalk ledge
+         west side   — the teacher's table, angled to face the desks
+         centre      — 3 columns x 3 rows of pupil desks (18 seats for 14)
+         east wall   — a window bay, poster wall, and the "5-B" plaque
+         south-east  — flowers and a plant, because a room people live in
+                       has something growing in it
+       Everything below is decor + DESK tiles; collision is only the walls and
+       the furniture tiles, so the room stays walkable. */
+    var cdx, cdy;
+    // pupil desks: 3 columns x 3 rows, leaving an aisle down the middle
+    for (cdy = 0; cdy < 3; cdy++) {
+      for (cdx = 0; cdx < 3; cdx++) {
+        var deskX = 57 + cdx * 2;
+        var deskY = 22 + cdy * 3;
+        if (deskX > 61) continue;                 // keep the east aisle clear
+        fillRect(deskX, deskY, 1, 1, TILE.DESK);
       }
     }
-    decor.push({ type: "blackboard", x: 58 * T, y: 19 * T + 4, w: 5 * T, h: 26 });
-    decor.push({ type: "plant", x: 58 * T + 8, y: 31 * T });
-    decor.push({ type: "poster", x: 62 * T - 6, y: 24 * T, text: "5-B" });
+    // teacher's table: two tiles, west of the front desks, facing the room
+    fillRect(56, 21, 1, 2, TILE.DESK);
 
-    // ============ SHOP (x34..44, y22..32) — beside the school ============
-    // A kiosk set into the yard, its door on the south wall onto the main path,
-    // so the walk from the classroom is a few steps instead of a trek.
-    strokeRect(34, 22, 11, 11, TILE.WALL);
-    clearRect(35, 23, 9, 9, TILE.FLOOR);
-    // door in the south wall -> yard / main path
-    set(38, 32, TILE.DOOR);
-    set(39, 32, TILE.DOOR);
-    set(40, 32, TILE.DOOR);
-    // shelves along the north wall (the four gift items sit here)
-    fillRect(36, 23, 1, 1, TILE.SHELF);
-    fillRect(38, 23, 1, 1, TILE.SHELF);
-    fillRect(40, 23, 1, 1, TILE.SHELF);
-    fillRect(42, 23, 1, 1, TILE.SHELF);
-    // counter
-    fillRect(36, 30, 6, 1, TILE.SHELF);
-    // short path from the kiosk door down to the main path
-    fillRect(38, 33, 3, 1, TILE.PATH);
-    decor.push({ type: "rug", x: 37 * T, y: 25 * T, w: 5 * T, h: 4 * T, color: "#5a3a2e" });
-    decor.push({ type: "lamp", x: 37 * T, y: 24 * T });
-    decor.push({ type: "lamp", x: 42 * T, y: 28 * T });
-    decor.push({ type: "sign", x: 35 * T, y: 22 * T - 6, text: "SARDOR SAVDO" });
+    // blackboard across the north wall — wider than the old one, which is the
+    // single most important piece of classroom furniture
+    decor.push({ type: "blackboard", x: 56 * T + 4, y: 19 * T + 3, w: 7 * T - 8, h: 30, text: "5-B  MATEMATIKA" });
+    // chalk ledge under the board
+    decor.push({ type: "board", x: 56 * T + 40, y: 19 * T + 34, w: 3 * T, h: 8, text: "" });
+
+    // teacher's table has a flower on it — the smallest possible signal that
+    // this room is looked after by a person, not a timetable
+    decor.push({ type: "flowers", x: 56 * T + 14, y: 21 * T + 10 });
+    // window bay on the east wall
+    decor.push({ type: "window", x: 62 * T + 6, y: 21 * T, w: 18, h: 3 * T });
+    // posters — the room's walls should say something
+    decor.push({ type: "poster", x: 56 * T + 6, y: 24 * T, text: "5-B" });
+    decor.push({ type: "poster", x: 56 * T + 6, y: 27 * T, text: "MATEMATIKA" });
+    decor.push({ type: "wallPoster", x: 62 * T - 4, y: 26 * T, text: "OLIMPIADA" });
+    // flowers by the door and on the window sill
+    decor.push({ type: "flowers", x: 61 * T + 20, y: 31 * T + 12 });
+    decor.push({ type: "plant", x: 56 * T + 10, y: 31 * T + 4 });
+    decor.push({ type: "plant", x: 62 * T - 2, y: 30 * T });
+    // a rug under the front of the room, so the eye finds the board
+    decor.push({ type: "rug", x: 57 * T, y: 20 * T + 40, w: 6 * T, h: 2 * T, color: "#4a3b46" });
+    // mini gifts on the shelf: the chapter's own theme, physically in the room
+    decor.push({ type: "gifts", x: 61 * T + 4, y: 28 * T + 6 });
+    // a lamp so the room is lit warmly rather than by the ceiling grid
+    decor.push({ type: "lamp", x: 59 * T + 12, y: 26 * T + 12 });
+
+    // ============ SHOP (x52..58, y12..17) — directly ABOVE the school =======
+    // The user's words: "move Sardor aka's shop on above the school. make it
+    // smallar, give the shop a more 'shoppy' look".
+    //
+    // So it is no longer a kiosk standing in the yard: it is a small stall on the
+    // school's north side, facing it across a one-tile lane. "Above" is literal
+    // on screen — the school runs x43..63, y19..38 and the shop sits at y12..17
+    // with the school's roof directly underneath it.
+    // 7x6 tiles including its own walls (the old kiosk was 11x11, so it is now
+    // less than half the footprint) but dressed like a real dukon: a shelf wall,
+    // an L-counter, a price board, a shopfront window, posters, lamps, a rug out
+    // front and plants.
+    strokeRect(52, 12, 7, 6, TILE.WALL);
+    clearRect(53, 13, 5, 4, TILE.FLOOR);          // interior x53..57, y13..16
+    // door in the south wall, onto the lane between the shop and the school
+    set(54, 17, TILE.DOOR);
+    set(55, 17, TILE.DOOR);
+    set(56, 17, TILE.DOOR);
+    // shelving along the back (north) wall — the four gift items sit here
+    fillRect(53, 13, 5, 1, TILE.SHELF);
+    // L-counter down the west side, display table on the east
+    set(53, 14, TILE.SHELF);
+    set(53, 15, TILE.SHELF);
+    set(57, 15, TILE.SHELF);
+    // Short route: a back door out of the school corridor (north end), then the
+    // lane along the school's north wall joining it to the shop door. Without
+    // this the shop would only be reachable by walking right round the school.
+    // The back door sits on the corridor's north wall at x45 (the corridor now
+    // starts at x44 after the school moved two tiles west).
+    set(45, 19, TILE.DOOR);
+    fillRect(33, 18, 24, 1, TILE.PATH);
+    // ---- stall dressing: this must read as a little bazaar counter, not a shed.
+    // The signboard hangs over the doorway; the price board is nailed up inside.
+    decor.push({ type: "sign", x: 55 * T + T / 2, y: 17 * T + 20, text: "SARDOR SAVDO" });
+    decor.push({ type: "board", x: 53 * T + 8, y: 12 * T + 4, w: 3 * T - 16, h: 14, text: "NARX" });
+    // A shopfront window either side of the door: the single strongest signal
+    // that this is a shop and not a hut. It is drawn as glass on the front wall.
+    decor.push({ type: "window", x: 52 * T + 6, y: 17 * T + 6, w: 18, h: 18 });
+    decor.push({ type: "window", x: 57 * T + 8, y: 17 * T + 6, w: 18, h: 18 });
+    // goods actually visible inside: the chapter's gift motif on the shelves,
+    // plus a small basket of produce by the counter
+    decor.push({ type: "gifts", x: 53 * T + 10, y: 13 * T + 4 });
+    decor.push({ type: "flowers", x: 57 * T + 16, y: 16 * T + 16 });
+    // posters on the interior walls — a dukon's walls are never bare
+    decor.push({ type: "wallPoster", x: 53 * T + 2, y: 14 * T + 4, text: "SOVGA" });
+    decor.push({ type: "wallPoster", x: 57 * T + 6, y: 14 * T + 4, text: "YANGI" });
+    // lamps at the doorway, a rug out front, plants flanking the entrance
+    decor.push({ type: "lamp", x: 52 * T + 4, y: 18 * T + 4 });
+    decor.push({ type: "lamp", x: 58 * T + 22, y: 18 * T + 4 });
+    decor.push({ type: "rug", x: 54 * T, y: 18 * T + 6, w: 3 * T, h: 20, color: "#6b3f2c" });
+    decor.push({ type: "plant", x: 52 * T + 8, y: 18 * T + 24 });
+    decor.push({ type: "plant", x: 58 * T + 26, y: 18 * T + 24 });
 
     // ============ YARD DECOR ============
     // fountain at crossroads
@@ -237,8 +330,8 @@ G.map = (function () {
     fillRect(35, 16, 1, 2, TILE.BENCH);
 
     // planters near the school door
+    decor.push({ type: "plant", x: 42 * T - 14, y: 34 * T + 8 });
     decor.push({ type: "plant", x: 44 * T - 14, y: 34 * T + 8 });
-    decor.push({ type: "plant", x: 46 * T - 14, y: 34 * T + 8 });
 
     // hoops / football lines in the yard corner (for ball play)
     decor.push({ type: "goal", x: 24 * T, y: 33 * T + 10 });
@@ -261,7 +354,7 @@ G.map = (function () {
 
     // build shop item pedestals (used by the gift minigame overlay, not collisions)
     for (var s = 0; s < 4; s++) {
-      buildSpots.push({ x: (36 + s * 2) * T, y: 23 * T + 8, index: s });
+      buildSpots.push({ x: (53 + s * 1.25) * T + 6, y: 13 * T + 8, index: s });
     }
   }
 

@@ -144,14 +144,16 @@ for (let i = 0; i < 12 && !back; i++) {
 }
 ck(back, "the answer returns to the question menu", G.dialogue.debugNodeId());
 
-/* Ask question 2 (MOM_Q2 -> mom_a2), which proves the second question still
-   works after returning and that max:2 is still respected. */
-pressQueue = ["2"];
+/* Ask question 2. The menu now lists only the questions that are still
+   available (asked ones are removed, not just greyed out), so "1" is the first
+   remaining question — which, after MOM_Q1 was spent, is MOM_Q2. Picking by
+   position in the visible list is the behaviour the player sees. */
+pressQueue = ["1"];
 G.dialogue.update(0.05);
 G.dialogue.handleInput();
 step(1, 0.05);
 const afterQ2 = G.dialogue.debugNodeId();
-ck(afterQ2 === "mom_a2", "asking question 2 plays its answer", afterQ2);
+ck(afterQ2 === "mom_a2", "asking the next question plays its answer", afterQ2);
 
 /* Advance again; with two questions spent the scene must leave the menu. */
 let left = false;

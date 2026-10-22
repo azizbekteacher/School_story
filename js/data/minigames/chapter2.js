@@ -945,4 +945,459 @@
       }
     }
   });
+
+  /* ======================================================================
+     3. TO'G'RI MAQTOV — bitta o'quvchiga bitta aniq gap
+
+     To'rt o'quvchi, har biri haqida bitta fakt. Har safar uch-to'rt maqtov
+     varianti: bittasi aniq va rost, qolganlari umumiy, yolg'on yoki kinoya.
+     To'g'ri gap o'quvchi haqidagi faktga tayanadi. Umumiy gap hech kimga
+     tegishli emas; yolg'on gap esa o'quvchi o'zi biladigan narsaga zid.
+
+     Natija: 3-4 aniq maqtov — g'alaba. Orada umumiy gap bo'lsa — OK.
+     2 yoki undan kam — mag'lubiyat. Host bizni 852x418 ga qisadi. */
+
+  var CMP_ROUNDS = [
+    {
+      name: "Dilnoza",
+      seat: "birinchi qator · daftari to'la",
+      skin: 2,
+      intel: "Kecha darsdan keyin qoldi. O'zi xato yechgan misolni qaytadan yechdi.",
+      options: [
+        { kind: "false",
+          text: "Sen sinfning eng aqllisisan — sen hech qachon xato qilmaysan.",
+          fb: "U xato qiladi va buni o'zi biladi: kecha xatoni tuzatgan. Yolg'on maqtov ishonchni yo'qotadi." },
+        { kind: "right",
+          text: "Kecha o'sha misolni qaytadan yechganingni ko'rdim. Xatoni o'zing topib tuzatding — bu qiyin ish.",
+          fb: "Bitta ism, bitta kechagi ish. Aynan shu gap ertaga ham esda qoladi." },
+        { kind: "generic",
+          text: "Barakalla, juda yaxshi. Sen zo'r o'quvchisan.",
+          fb: "Bu gapni sinfdagi hamma bolaga aytish mumkin. Shuning uchun u hech kimga tegishli emas." },
+        { kind: "backhanded",
+          text: "Yaxshi, hech bo'lmasa bir marta urinib ko'rding.",
+          fb: "«Hech bo'lmasa» — maqtov emas, tanbeh. U buni eshitadi." }
+      ]
+    },
+    {
+      name: "Jasur",
+      seat: "orqa qator · maydon chizadi",
+      skin: 3,
+      intel: "Oxirgi masalani kitobdagidan boshqacha yechdi. Javob to'g'ri chiqdi.",
+      options: [
+        { kind: "generic",
+          text: "Barakalla, juda yaxshi ishlading.",
+          fb: "«Juda yaxshi» uning nima qilganini aytmaydi. U siz nimani ko'rganingizni bilmaydi." },
+        { kind: "backhanded",
+          text: "Nihoyat bitta masalani o'zing yechding.",
+          fb: "«Nihoyat» so'zi maqtovni tanbehga aylantirdi — u o'sha gapni eslab qoladi." },
+        { kind: "right",
+          text: "Oxirgi masalani boshqacha yechding, javob esa to'g'ri. Usulingni menga ham ko'rsatasanmi?",
+          fb: "Usulni nomladingiz va o'rganishga tayyorligingizni aytdingiz. Bu maqtov ham, taklif ham." },
+        { kind: "false",
+          text: "Sen eng tez hisoblaydigan o'quvchisan — sendan tez hech kim yechmaydi.",
+          fb: "U tez emas, boshqacha hisoblaydi. Yolg'on maqtov uni himoyaga o'tkazadi." }
+      ]
+    },
+    {
+      name: "Bekzod",
+      seat: "deraza yonida · uch hafta bo'ldi",
+      skin: 5,
+      intel: "Uch hafta oldin boshqa maktabdan keldi. Hali sinfda gapirmadi — lekin daftaridagi javoblar to'g'ri.",
+      options: [
+        { kind: "right",
+          text: "Bekzod, uch haftada bir marta ham gapirmading, lekin daftaringdagi javoblar to'g'ri. Bugun darsda seni so'rayman — tayyor bo'l.",
+          fb: "Jimlikni tan oldingiz va uni ayblamadingiz. Bu maqtov emas, taklif — va u aynan shuni kutgan." },
+        { kind: "generic",
+          text: "Barakalla, sen ham yaxshi o'quvchisan.",
+          fb: "Umumiy gap yangi bola uchun bo'sh gap: u hali bu sinfda ko'rinmagan." },
+        { kind: "false",
+          text: "Sen sinfning eng faol o'quvchisisan — hamma seni juda yaxshi taniydi.",
+          fb: "U yangi va hech kim uni tanimaydi. Yolg'on maqtov darhol seziladi." },
+        { kind: "backhanded",
+          text: "Yaxshi, jim o'tirsang — hech bo'lmasa darsni buzmayapsan.",
+          fb: "Jimlikni «yaxshi» deb atadingiz — ya'ni u shunday qolishini xohlaysiz." }
+      ]
+    },
+    {
+      name: "Timur",
+      seat: "orqa qator · ikki hafta kasal edi",
+      skin: 0,
+      intel: "Partadoshi misolni yecholmay o'tirganda, o'zi so'ramasdan yoniga o'tib tushuntirdi.",
+      options: [
+        { kind: "generic",
+          text: "Barakalla, juda yaxshi.",
+          fb: "Bu gap uning qilgan ishini aytmaydi. U o'zi bilmaydi siz nimani ko'rdingiz." },
+        { kind: "false",
+          text: "Sen eng kuchli matematiksan — hamma masalani birinchi bo'lib yechasan.",
+          fb: "U ikki hafta kasal bo'lib orqada qolgan. Bu gap unga yana yuk bo'ladi." },
+        { kind: "backhanded",
+          text: "Yaxshi, o'z ishingni qo'yib, boshqaning ishiga aralashding.",
+          fb: "Yordamni «aralashish» deb atadingiz. U keyingi safar yordam bermaydi." },
+        { kind: "right",
+          text: "Seni hech kim so'ramadi — o'zing borib tushuntirding. Bu sinfda eng qimmat narsa.",
+          fb: "Aniq ish, aniq vaqt: so'ralmasdan qilingan yordam. Bu gap unga o'z qadrini ko'rsatadi." }
+      ]
+    }
+  ];
+
+  G.minigames.register("complimentRun", {
+    title: "To'g'ri maqtov",
+    subtitle: "Bitta o'quvchi, bitta fakt — va bitta gap. Umumiy maqtov hech kimga tegishli emas.",
+    controls: "1-4 — tanlash · ENTER — tasdiqlash · sichqoncha bilan ham bo'ladi",
+    principles: ["C2-004"],
+
+    create: function (api) {
+      var ri = 0;                 // current round
+      var sel = 0;                // highlighted option
+      var phase = "ask";          // ask | feedback | verdict
+      var picks = [];             // picks[round] = { idx, kind }
+      var t = 0, vT = 0, finished = false;
+      var lastCtx = null;
+
+      function cur() { return CMP_ROUNDS[ri]; }
+
+      function pick(i) {
+        if (finished || phase !== "ask") return;
+        var r = cur();
+        if (i < 0 || i >= r.options.length) return;
+        picks[ri] = { idx: i, kind: r.options[i].kind };
+        sel = i;
+        phase = "feedback";
+        sfx(api, r.options[i].kind === "right" ? "good" : "bad");
+      }
+
+      function advance() {
+        if (finished || phase !== "feedback") return;
+        if (ri >= CMP_ROUNDS.length - 1) {
+          phase = "verdict";
+          vT = 0;
+          if (tally().win) sfx(api, "win"); else sfx(api, "blip", 300);
+          return;
+        }
+        ri++;
+        sel = 0;
+        phase = "ask";
+        sfx(api, "blip", 540);
+      }
+
+      function tally() {
+        var right = 0, generic = 0, flattery = 0, backhanded = 0;
+        for (var i = 0; i < picks.length; i++) {
+          var p = picks[i];
+          if (!p) continue;
+          if (p.kind === "right") right++;
+          else if (p.kind === "generic") generic++;
+          else if (p.kind === "false") flattery++;
+          else backhanded++;
+        }
+        var win = right >= 3;
+        var choiceId = !win ? "CH2_MG_COMPLIMENT_WRONG"
+          : (generic > 0 ? "CH2_MG_COMPLIMENT_OK" : "CH2_MG_COMPLIMENT_BEST");
+        return {
+          right: right, generic: generic, flattery: flattery,
+          backhanded: backhanded, win: win, choiceId: choiceId
+        };
+      }
+
+      function detailLine(s) {
+        if (!s.win) {
+          return "Aniq maqtov " + s.right + "/4. Qolgan gaplar umumiy, yolg'on yoki kinoya bo'ldi.";
+        }
+        if (s.generic > 0) {
+          return "Aniq maqtov " + s.right + "/4 — lekin orada bitta umumiy gap bor.";
+        }
+        return "Aniq maqtov " + s.right + "/4: har bir gap bitta haqiqiy ishga tayanadi.";
+      }
+
+      function closingLine(s) {
+        if (!s.win) {
+          return "Yolg'on maqtov tez unutiladi; aniq maqtov ertaga ham ishlaydi. Ertaga bittadan boshlang.";
+        }
+        if (s.generic > 0) {
+          return "Bitta umumiy gap butun ishni bekor qilmaydi — lekin esda qoladigan gap shu bo'lib qolmasin.";
+        }
+        return "Ular ertaga sizni sinf emas, o'zini ko'rgan odam deb biladi.";
+      }
+
+      function finishNow() {
+        if (finished) return;
+        finished = true;
+        var s = tally();
+        var notes = [];
+        if (s.win && s.generic === 0) {
+          notes.push({
+            principle: "C2-004", verdict: "good",
+            text: "Har bir maqtovda ism va bitta haqiqiy ish bor edi: kechagi tuzatish, boshqa usul, uch haftalik jimlik, so'ralmagan yordam. Umumiy maqtov ertaga eslanmaydi; shu gaplar eslanadi."
+          });
+          notes.push({
+            principle: "C2-005", verdict: "good",
+            text: "Maqtov o'lchov emas, payqash edi: har biri o'sha bolaning o'z momentida, o'sha ish haqida aytildi."
+          });
+        } else if (s.win) {
+          notes.push({
+            principle: "C2-004", verdict: "ok",
+            text: "Ko'p maqtov aniq edi, lekin orada bittasi umumiy bo'lib qoldi — hamma bolaga aytiladigan gap. Umumiy gap yaxshi niyatni ko'rsatadi, lekin hech kimga tegishli emas."
+          });
+          notes.push({
+            principle: "C2-005", verdict: "ok",
+            text: "Bitta umumiy gap butun ishni bekor qilmaydi. Lekin o'quvchi eslab qoladigan gap shu bo'lib qolsa, qolgan uchtasi unutiladi."
+          });
+        } else {
+          notes.push({
+            principle: "C2-004", verdict: "weak",
+            text: "Ikki yoki undan kam maqtov aniq chiqdi. Qolganlari umumiy, yolg'on yoki kinoya edi — va o'quvchi qaysi biri ekanini biladi."
+          });
+          notes.push({
+            principle: "C2-005", verdict: "weak",
+            text: "Yolg'on maqtov bir zumda ishonchni yo'qotadi: o'quvchi siz maqtagan narsani qilmaganini o'zi biladi."
+          });
+        }
+        api.finish({
+          win: s.win,
+          choiceId: s.choiceId,
+          detail: detailLine(s),
+          notes: notes,
+          effects: s.win ? [{ intel: "intel_compliment" }] : []
+        });
+      }
+
+      function layoutOptions() {
+        var n = cur().options.length;
+        var top = 32, bottom = 300, gap = 10;
+        var h = Math.floor((bottom - top - gap * (n - 1)) / n);
+        var out = [];
+        for (var i = 0; i < n; i++) out.push({ x: 248, y: top + i * (h + gap), w: 590, h: h });
+        return out;
+      }
+
+      return {
+        update: function (dt) {
+          t += dt;
+          if (finished) return;
+          if (phase === "verdict") {
+            vT += dt;
+            if (vT > 8) finishNow();
+          }
+        },
+
+        onKey: function (key) {
+          if (finished) return;
+          if (phase === "verdict") {
+            if (key === "enter" || key === "space" || key === "r") finishNow();
+            return;
+          }
+          if (phase === "feedback") {
+            if (key === "enter" || key === "space") advance();
+            return;
+          }
+          var n = cur().options.length;
+          if (key >= "1" && key <= String(n)) { pick(parseInt(key, 10) - 1); return; }
+          if (key === "arrowleft" || key === "a" || key === "arrowup" || key === "w") {
+            sel = (sel <= 0) ? n - 1 : sel - 1;
+            sfx(api, "blip", 500);
+          } else if (key === "arrowright" || key === "d" || key === "arrowdown" || key === "s") {
+            sel = (sel + 1) % n;
+            sfx(api, "blip", 520);
+          } else if (key === "enter" || key === "space") {
+            pick(sel);
+          }
+        },
+
+        onPointer: function (x, y, kind) {
+          if (finished || kind !== "down") return;
+          var p = { x: x - MOUSE_X, y: y - MOUSE_Y };
+          if (phase === "verdict") { finishNow(); return; }
+          if (phase === "feedback") {
+            // only the feedback panel advances: a mis-click just after choosing
+            // must not skip the sentence the game is trying to teach.
+            if (p.x >= 248 && p.x <= 838 && p.y >= 310 && p.y <= 412) advance();
+            return;
+          }
+          var cs = layoutOptions();
+          for (var i = 0; i < cs.length; i++) {
+            if (inRect(p, cs[i].x, cs[i].y, cs[i].w, cs[i].h)) { pick(i); return; }
+          }
+        },
+
+        draw: function (ctx) {
+          lastCtx = ctx;
+          if (phase === "verdict") { drawVerdict(ctx); return; }
+          drawPupilCard(ctx);
+          drawIntel(ctx);
+          drawOptions(ctx);
+          if (phase === "feedback") drawFeedback(ctx);
+        },
+
+        debugState: function () {
+          return {
+            round: ri, phase: phase, sel: sel, pickCount: picks.length,
+            tally: tally(), finished: finished
+          };
+        },
+        debugPick: function (i) { pick(i); return picks[ri] ? picks[ri].kind : null; },
+        debugNext: function () { advance(); return phase; },
+        // line counts for the overflow audit: intel + every option, wrapped at
+        // the widths the draw code actually uses.
+        debugLayout: function () {
+          var c = lastCtx;
+          if (!c) return null;
+          var out = [];
+          for (var i = 0; i < CMP_ROUNDS.length; i++) {
+            var r = CMP_ROUNDS[i];
+            c.font = "11px " + SANS;
+            var intelLines = wrap(c, r.intel, 208).length;
+            var optLines = [];
+            for (var k = 0; k < r.options.length; k++) {
+              c.font = "12.5px " + SANS;
+              optLines.push(wrap(c, r.options[k].text, 590 - 62).length);
+            }
+            out.push({ name: r.name, intelLines: intelLines, optLines: optLines });
+          }
+          return out;
+        }
+      };
+
+      /* ---------------------------------------------------------- drawing */
+
+      function drawPupilCard(ctx) {
+        var r = cur();
+        rrect(ctx, 0, 0, 236, 252, 10);
+        ctx.fillStyle = "rgba(20,17,14,.62)"; ctx.fill();
+        ctx.strokeStyle = "rgba(246,239,227,.12)"; ctx.lineWidth = 1; ctx.stroke();
+
+        ctx.save();
+        ctx.translate(118, 152);
+        ctx.scale(2.7, 2.7);
+        drawPupil(ctx, 0, 0, 0.7, 0.92, t * 0.6 + 1.3, 2.1, SKINS[r.skin % SKINS.length]);
+        ctx.restore();
+
+        txt(ctx, r.name, 118, 214, "bold 16px " + SANS, CREAM, "center");
+        txt(ctx, r.seat, 118, 234, "10px " + SANS, MUTED, "center");
+      }
+
+      function drawIntel(ctx) {
+        var r = cur();
+        rrect(ctx, 0, 264, 236, 98, 10);
+        ctx.fillStyle = "rgba(242,196,105,.07)"; ctx.fill();
+        ctx.strokeStyle = "rgba(242,196,105,.30)"; ctx.lineWidth = 1; ctx.stroke();
+        txt(ctx, "BILGANIM", 14, 284, "bold 9.5px " + SANS, GOLD);
+        ctx.font = "11px " + SANS;
+        var lines = wrap(ctx, r.intel, 208);
+        for (var i = 0; i < Math.min(4, lines.length); i++) {
+          txt(ctx, lines[i], 14, 302 + i * 14, "11px " + SANS, CREAM);
+        }
+      }
+
+      function drawOptions(ctx) {
+        var r = cur(), cs = layoutOptions();
+        txt(ctx, "Qaysi gapni aytasiz?", 248, 14, "bold 12px " + SANS, GOLD);
+        for (var d = 0; d < CMP_ROUNDS.length; d++) {
+          ctx.beginPath();
+          ctx.arc(760 + d * 16, 14, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = d < ri ? "rgba(242,196,105,.55)" : (d === ri ? GOLD : "rgba(246,239,227,.16)");
+          ctx.fill();
+        }
+        txt(ctx, String(ri + 1) + " / 4", 838, 14, "10px " + SANS, MUTED, "right");
+
+        for (var i = 0; i < cs.length; i++) {
+          var c = cs[i], o = r.options[i];
+          var isSel = (phase === "ask" && sel === i);
+          var isRight = (phase === "feedback" && o.kind === "right");
+          var pickedWrong = (phase === "feedback" && picks[ri] && picks[ri].idx === i && o.kind !== "right");
+
+          rrect(ctx, c.x, c.y, c.w, c.h, 8);
+          ctx.fillStyle = isRight ? "rgba(143,224,143,.10)"
+            : pickedWrong ? "rgba(217,117,92,.12)"
+              : isSel ? "rgba(242,196,105,.11)" : "rgba(246,239,227,.045)";
+          ctx.fill();
+          ctx.strokeStyle = isRight ? "rgba(143,224,143,.75)"
+            : pickedWrong ? "rgba(217,117,92,.75)"
+              : isSel ? GOLD : "rgba(246,239,227,.14)";
+          ctx.lineWidth = (isSel || isRight || pickedWrong) ? 1.6 : 1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(c.x + 22, c.y + c.h / 2, 11, 0, Math.PI * 2);
+          ctx.fillStyle = isSel ? "rgba(242,196,105,.22)" : "rgba(246,239,227,.07)";
+          ctx.fill();
+          txt(ctx, String(i + 1), c.x + 22, c.y + c.h / 2, "bold 11px " + SANS,
+              isSel ? GOLD : MUTED, "center");
+
+          ctx.font = "12.5px " + SANS;
+          var lines = wrap(ctx, o.text, c.w - 62);
+          var shown = Math.min(2, lines.length);
+          var ty = c.y + c.h / 2 - (shown - 1) * 8;
+          for (var k = 0; k < shown; k++) {
+            txt(ctx, lines[k], c.x + 42, ty + k * 16, "12.5px " + SANS, CREAM);
+          }
+        }
+      }
+
+      function drawFeedback(ctx) {
+        var r = cur(), p = picks[ri];
+        var o = p ? r.options[p.idx] : null;
+        var ok = !!(o && o.kind === "right");
+
+        rrect(ctx, 248, 310, 590, 102, 9);
+        ctx.fillStyle = "rgba(20,17,14,.80)"; ctx.fill();
+        ctx.strokeStyle = ok ? "rgba(143,224,143,.55)" : "rgba(217,117,92,.55)";
+        ctx.lineWidth = 1.2; ctx.stroke();
+
+        txt(ctx, ok ? "To'g'ri gap." : "Bu gap emas.", 266, 330,
+            "bold 12.5px " + SANS, ok ? GREEN : RED);
+        txt(ctx, "ENTER", 822, 330, "9.5px " + SANS, DIM, "right");
+
+        ctx.font = "11.5px " + SANS;
+        var lines = wrap(ctx, o ? o.fb : "", 552);
+        for (var i = 0; i < Math.min(3, lines.length); i++) {
+          txt(ctx, lines[i], 266, 352 + i * 15, "11.5px " + SANS, CREAM);
+        }
+        if (!ok) {
+          txt(ctx, "yashil gardish — to'g'ri gapi", 266, 400, "10px " + SANS, GREEN);
+        }
+      }
+
+      function drawVerdict(ctx) {
+        var s = tally();
+        ctx.save();
+        rrect(ctx, 0, 0, 852, 412, 12);
+        ctx.fillStyle = "rgba(22,18,15,.965)"; ctx.fill();
+        ctx.strokeStyle = "rgba(242,196,105,.28)"; ctx.lineWidth = 1; ctx.stroke();
+
+        txt(ctx, s.win ? "Maqtov ishladi" : "Maqtov ishlamadi", 426, 40,
+            "bold 19px " + SANS, s.win ? GREEN : RED, "center");
+        txt(ctx, "aniq maqtov " + s.right + " / 4", 426, 68,
+            "12px " + SANS, GOLD, "center");
+
+        txt(ctx, "kimga", 250, 100, "9.5px " + SANS, DIM);
+        txt(ctx, "qanday gap", 470, 100, "9.5px " + SANS, DIM);
+        txt(ctx, "natija", 756, 100, "9.5px " + SANS, DIM);
+
+        for (var i = 0; i < CMP_ROUNDS.length; i++) {
+          var p = picks[i], rr = CMP_ROUNDS[i], y = 124 + i * 26;
+          var kind = p ? rr.options[p.idx].kind : "generic";
+          var label = kind === "right" ? "aniq va rost"
+            : kind === "generic" ? "umumiy"
+              : kind === "false" ? "yolg'on" : "kinoya";
+          txt(ctx, rr.name, 250, y, "12px " + SANS, CREAM);
+          txt(ctx, label, 470, y, "11.5px " + SANS, kind === "right" ? GREEN : MUTED);
+          txt(ctx, kind === "right" ? "hisoblandi" : "hisoblanmadi", 756, y,
+              "10.5px " + SANS, kind === "right" ? GREEN : DIM);
+        }
+
+        ctx.font = "12px " + SANS;
+        var dl = wrap(ctx, detailLine(s), 600);
+        for (var k = 0; k < Math.min(2, dl.length); k++) {
+          txt(ctx, dl[k], 426, 240 + k * 18, "12px " + SANS, CREAM, "center");
+        }
+        ctx.font = "11.5px " + SANS;
+        var cl = wrap(ctx, closingLine(s), 600);
+        for (var m = 0; m < Math.min(2, cl.length); m++) {
+          txt(ctx, cl[m], 426, 292 + m * 16, "11.5px " + SANS, MUTED, "center");
+        }
+        txt(ctx, "ENTER", 426, 384, "10px " + SANS, DIM, "center");
+        ctx.restore();
+      }
+    }
+  });
 })();

@@ -45,7 +45,7 @@ placeholder.
 
 ---
 
-## 1. Step 1 — decide the question, and 5–6 principles
+## 1. Step 1 — decide the question, and six principles
 
 Write these down before any code.
 
@@ -53,9 +53,12 @@ Write these down before any code.
 it. Chapter 2's: *fourteen strangers are choosing who you are, and you are
 choosing who they are — what do you do in the first ninety seconds?*
 
-**Five or six principles, in your own namespace.** Give them ids that cannot
-collide with another chapter's: chapter 2 uses `C2-001` … `C2-006`. Do not reuse
-chapter 1's `I-*`/`F-*` ids, and do not extend chapter 1's learning object.
+**Six principles, in your own namespace.** The brief says "5–6"; the shipped
+chapter validator is stricter — `validate-chapter2.js` hard-fails on
+`principleIds.length !== 6`, so in practice a new chapter copied from it needs
+**exactly six**, ids in order. Give them a namespace that cannot collide with
+another chapter's: chapter 2 uses `C2-001` … `C2-006`. Do not reuse chapter 1's
+`I-*`/`F-*` ids, and do not extend chapter 1's learning object.
 
 Map each principle to a beat. Chapter 2's six principles are one per part of the
 lesson:
@@ -201,11 +204,15 @@ Rules the validators enforce:
 - `id`, `name`, `role`, `zone`, `at`, `entry` all required; ids unique.
 - `zone` must be one of the **anchor zones**: `staffroom classroom gate yard shop
   street corridor`. (`corridor2` is a real map zone but has no anchors, so an NPC
-  cannot stand there. A *trigger* may use `corridor2`.)
+  cannot stand there; a *trigger* may use `corridor2` — the validator exempts it.)
 - `at` must be `0..5` (each anchor zone has 6 positions).
+- `entry` is required and must be non-empty; a missing `entry.default` is a
+  warning, not an error — but always supply one.
 - Every value in `entry` must name an existing scene.
-- Every trigger needs `zone` + `scene`, `once: true`, a `beat` that exists in
-  `objectives`, and a zone that is a real map zone.
+- Every trigger **must** have `zone` + `beat` + `scene`, and `once: true`
+  (missing `once` is only a warning, but it is required by contract).
+- Trigger `zone` must be a real map zone (or `corridor2`); `beat` must exist in
+  `objectives`.
 - A trigger whose `beat` is not current will never fire — triggers do **not**
   queue across beats.
 
@@ -304,15 +311,36 @@ mom_q: {
       id: "MOM_Q2",
       text: "«Uydan tashqari nima bilan shug'ullanadi?»",
       intel: "intel_football",      // multi options grant intel via `intel`
-      next: "mom_a2"
+      next: "mom_a2"                // see the trap below — this is NOT followed
     }
   ]
 }
 ```
 
-Each picked option runs its `next` node, then returns to the same list; when
-`max` is reached or the player presses ENTER, play continues at `next`. `max` is
-required and numeric.
+**The multi trap:** a `multi` option's `next` is **ignored by the engine**
+(`dialogue.js` reads `o.next` only in `pickChoice`, never in `pickMulti`). Picking
+an option grants its `intel`, applies its `effects`, records the choice id, and
+returns to the same list — it never navigates. When `max` picks are made, or the
+player presses ENTER, play continues at the node's own **`next`** (or
+`nextAfter` / `nextFallback`). So chapter 1's `MOM_Q2.next: "mom_a2"` is dead
+data: in the mother scene, 9 of 17 nodes are reachable by the engine and
+`mom_a1 … mom_a4b` (8 nodes) are **not reachable at all**, because nothing else
+points at them.
+
+Worse, this is **invisible to the validators**: `validate-chapter2.js`'s orphan
+scan pushes `(n.options || []).forEach(o => push(o && o.next))` for *every* node
+type, so it credits multi options' `next` as a reachable edge. A new chapter with
+this mistake passes the validator and silently loses those reply nodes. Chapter 2
+happens not to contain a single `multi` node, which is why the gap has never
+shown up.
+
+So: do not copy chapter 1's multi pattern. Route your replies from the multi
+node's `next`, and if you need per-answer replies, use a `choice` node instead —
+`choice` *does* follow `o.next`. If you must use `multi` with per-option `next`,
+verify reachability yourself against the engine's real edge set (a `multi` node's
+only outgoing edge is its own `next`).
+
+`max` is required and numeric (`validate-chapter2.js` errors without it).
 
 **A minigame node:**
 
@@ -359,7 +387,8 @@ anything else, including plausible-looking words like `great`.
 **Notes are the scoring primitive and the teaching record.** The debrief shows
 per-principle good/bad tallies, so: one `note` on every meaningful choice, with
 the principle it expresses and one sentence saying why it lands or fails. Chapter
-2 has 114 principle references across 45 choice notes; a chapter with 15 notes is
+2 emits **114 principle references** in total (scene notes + choiceNotes + ideas +
+difficulties) and needs **45 `choiceNotes`**; a chapter with 15 notes is
 under-written.
 
 Notes and journals are stamped with the beat *before* any `beat` effect in the
@@ -413,7 +442,7 @@ G.data.chapter3Learning = {
   principles: { /* ONE OBJECT keyed by id — not an array */ },
   intel: { /* notebook labels for every intel id the script grants */ },
   choiceNotes: { /* one entry per option id AND per minigame choiceId */ },
-  archetypes: [ /* 3 or more, contiguous score bands */ ],
+  archetypes: [ /* EXACTLY 3, contiguous score bands */ ],
   ideas: [ /* 6–8 for a new chapter */ ],
   difficulties: [ /* 5–7 */ ]
 };
@@ -481,8 +510,11 @@ archetypes: [
 - `minAvg`/`maxAvg` must be within −1…2, and `minAvg ≤ maxAvg` or the validator
   fails.
 - `requiresIntel` entries must have labels in `intel`.
-- 3+ archetypes. Each needs `title`, `text`, `watchOut` — and `watchOut` should
-  be the *failure mode of that style*, not a generic warning.
+- **Exactly 3 archetypes** — the chapter-2 validator hard-fails on any other
+  count (`if (arch.length !== 3)`), even 4. Each needs `title`, `text`,
+  `watchOut` — and `watchOut` should be the *failure mode of that style*, not a
+  generic warning. Chapter 1 has 5, which is why its validator is not the one to
+  copy.
 
 **Why chapters never merge their learning objects:** `principles` is an object so
 two chapters' principles could coexist, but `archetypes` is an array of score
@@ -632,19 +664,27 @@ reads those two property names.
 it.** Report the three (or two) lines to add, in this position:
 
 ```html
+<script src="js/data/story.js"></script>
+<script src="js/data/learning.js"></script>
 <script src="js/data/chapter2.js"></script>
 <script src="js/data/chapter2-learning.js"></script>
-<script src="js/data/chapters.js"></script>          <!-- after ALL data -->
-...
+<script src="js/data/chapter3.js"></script>            <!-- NEW: your story -->
+<script src="js/data/chapter3-learning.js"></script>   <!-- NEW: your teaching payload -->
+<script src="js/data/chapters.js"></script>            <!-- MUST stay after every story/learning file -->
+<script src="js/data/minigames/gift.js"></script>
+<script src="js/data/minigames/travel.js"></script>
+<script src="js/data/minigames/ball.js"></script>
 <script src="js/data/minigames/chapter2.js"></script>
-<script src="js/data/chapter3.js"></script>           <!-- story/learning above chapters.js -->
-<script src="js/data/chapter3-learning.js"></script>
-<script src="js/data/minigames/chapter3.js"></script> <!-- minigames before main.js -->
+<script src="js/data/minigames/chapter3.js"></script>  <!-- NEW: only if you wrote one -->
+<script src="js/main.js"></script>                     <!-- MUST stay last -->
 ```
 
-The constraint that matters: **story/learning files must load before
+The two constraints that matter: **story/learning files must load above
 `js/data/chapters.js`**, because the registry captures chapter 1's references at
-load. Minigame files must load before `main.js`.
+load; and **`js/main.js` stays last**. A minigame file only has to load before
+`main.js` — the registry stores minigame *ids*, and definitions are looked up
+when a minigame node runs, so the block above puts yours after `chapters.js`
+alongside the existing ones.
 
 **7.3 Add one line to `js/data/chapters.js`.** Also Lead-owned; report the line.
 It follows the chapter-2 pattern exactly:
@@ -704,17 +744,25 @@ Everything the validators will catch. Get it right the first time.
       scene**.
 - [ ] Option ids are unique across the whole chapter.
 - [ ] **Every option id carries the chapter prefix** (`CH3_…`).
-- [ ] Every gated option has `requires` **and** `lockedText`.
-- [ ] Every `requires.intel` is granted somewhere in the script.
-- [ ] Every `minigame` node has a `game` id that is registered, plus `onWin` and
-      `onLose`.
+- [ ] Every gated option has `requires` **and** `lockedText` (missing `lockedText`
+      is a warning, but treat it as an error — the player must see the reason).
+- [ ] Every `requires.intel` has a label in `learning.intel`. (The chapter-2
+      validator enforces the *label*. It does **not** check that the intel is ever
+      granted — `validate.js` does that for chapter 1 via
+      `option ... requires intel "x" that is never granted`. For a new chapter,
+      check this yourself: search the script for a grant of every gate's intel.)
+- [ ] Every `minigame` node has a registered `game` id. `onWin`/`onLose` missing
+      is only a warning (the engine falls back to `next`), but supply both.
 - [ ] Every `next`/`onWin`/`onLose` target exists.
 - [ ] No node references a node in another scene.
 - [ ] Every note has `principle` and a `verdict` in `good|ok|weak|bad`.
 - [ ] **Exactly one** node sets `{ endMission: true }`, and it also sets a beat.
 - [ ] Every scene is reachable from `opening`, an NPC `entry`, or a trigger.
 - [ ] Every scene has a terminal node (`type: "end"`, or `next: null`).
-- [ ] **No orphaned nodes** — every node is reachable from its scene's `start`.
+- [ ] **No orphaned nodes** — every node is reachable from its scene's `start`
+      **by the edges the engine actually follows**. A `multi` node's only outgoing
+      edge is its own `next`; its options' `next` values are dead. Do not trust
+      the validator here (see §3.3 "The multi trap").
 
 ### NPCs / triggers
 
@@ -735,8 +783,9 @@ Everything the validators will catch. Get it right the first time.
 - [ ] Every principle is referenced by at least one note/idea/difficulty.
 - [ ] Every principle referenced anywhere exists.
 - [ ] `intel`: a label for every granted id and every gated-on id.
-- [ ] `archetypes`: 3+, contiguous non-overlapping bands covering −1…2, each with
-      `title`, `text`, `watchOut`, and `requiresIntel` ids that have labels.
+- [ ] `archetypes`: **exactly 3**, contiguous non-overlapping bands covering −1…2,
+      each with `title`, `text`, `watchOut`, and `requiresIntel` ids that have
+      labels.
 - [ ] `ideas`: 6–8, each with `how` of **exactly 3** steps and a real `difficulty`.
 - [ ] `difficulties`: 5–7, each with `why` and `mitigation`.
 - [ ] Every `idea.principle` / `difficulty.principle` exists.
@@ -758,7 +807,8 @@ Everything the validators will catch. Get it right the first time.
 ## 9. The gate commands
 
 Run **in this order**, from the repository root. All of these are green on the
-current two-chapter tree.
+current two-chapter tree except `audit-text.js`, which has a known pre-existing
+regression documented at the end of this section.
 
 ```powershell
 node tools/validate.js
@@ -828,12 +878,26 @@ node tools/audit-text.js
 node tools/analyze-facing.js
 ```
 
-`TEXT AUDIT PASSED — no overflow, no runtime errors` and
-`PASS  the nose points the way the hero is walking, in both directions`.
+`analyze-facing.js` prints
+`✓ PASS — the nose points the way the hero is walking, in both directions`
+followed by `✓ side views are exact mirror images`.
+
+**`audit-text.js` is already red — do not treat its failure as yours.**
+As of commit `93b36c8` it reports `issues found: 60 overflow, 0 runtime` and exits
+1, on every run. Two world-space strings are the whole cause: the shop sign
+`"SARDOR SAVDO"` (drawn at screen x 1120, edge 1166) and Nodira's floating name
+label (screen x 944, edge 969 — about 9px past the 960px viewport). Both are
+drawn under the camera translate, and the audit judges the *translated* x.
+`93b36c8` moved the shop and gate east and brought them into the audit's view;
+`6bdf96d` passes this audit cleanly, and HEAD with only `js/world/map.js` reverted
+to `6bdf96d` passes again. That is a pre-existing regression owned by whoever owns
+`js/world/map.js` — not something a new chapter caused. Report it, don't chase it,
+and never "fix" it by loosening the audit's thresholds.
 
 **A red gate means your change is wrong.** Fix the change; never edit the test to
 match. If a gate was already red before you started, say so in your report with
-the verbatim output rather than silently working around it.
+the verbatim output rather than silently working around it — `audit-text.js` is
+the one gate in that state right now.
 
 ---
 
@@ -920,6 +984,12 @@ at least one ungated sibling option.
 Check: `validate-chapter2.js`-style checks are static. They cannot prove the
 minigame is playable, the pacing works, or text fits. Run `playtest.js
 --chapter=chN`, `verify-file-protocol.js`, and `audit-text.js`.
+
+**"I wrote reply nodes after a `multi` node and the player never sees them."**
+Check: `multi` options' `next` is never followed — only the multi node's own
+`next`. See §3.3 "The multi trap". The validator will not catch this, because its
+orphan scan wrongly counts option `next` as a reachable edge for every node type.
+Use a `choice` node if you need per-answer replies.
 
 **"Chapter 1 broke while I was adding a chapter."**
 Revert. Chapter 1 is a fixed point. Check anything you changed that is shared:

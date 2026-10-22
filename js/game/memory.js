@@ -405,6 +405,85 @@ G.memory = (function () {
     };
   }
 
+  /* -------------------------------------------------- chapter completion log
+
+     The save file holds ONE chapter: it is the run you are in the middle of.
+     Whether a chapter has ever been finished is a different question, and it
+     has to outlive switching chapters — otherwise the in-game chapter menu
+     could not tell "you have never played this" from "you finished it last
+     week", and it could not know that re-tapping a finished chapter should
+     start it over rather than resume a save that ends on a debrief.
+
+     So completion lives in its own tiny localStorage record, keyed by chapter
+     id. It is deliberately NOT part of the save: starting a chapter fresh must
+     not erase the fact that you finished it before.
+
+     Shape: { ch1: { completed: true, times: 2, at: "2026-10-22T..." }, ... } */
+  var PROGRESS_KEY = "sulton.progress.v1";
+
+  function progressStore() {
+    try {
+      if (typeof localStorage === "undefined" || !localStorage) return {};
+      var raw = localStorage.getItem(PROGRESS_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : {};
+    } catch (e) {
+      // A corrupt or unavailable store is not an error the player needs.
+      return {};
+    }
+  }
+
+  function writeProgress(store) {
+    try {
+      if (typeof localStorage === "undefined" || !localStorage) return false;
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(store));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function progress() {
+    var store = progressStore();
+    var out = {};
+    Object.keys(store).forEach(function (id) {
+      var rec = store[id] || {};
+      out[id] = {
+        completed: !!rec.completed,
+        times: typeof rec.times === "number" ? rec.times : (rec.completed ? 1 : 0),
+        at: rec.at || null
+      };
+    });
+    return out;
+  }
+
+  function markCompleted(chapterId) {
+    if (!chapterId) return false;
+    var store = progressStore();
+    var rec = store[chapterId] || {};
+    // Count a completion only once per distinct finish, not once per frame: the
+    // caller fires this on entering the final debrief, and re-entering it (e.g.
+    // resizing, or resuming a finished save) must not inflate the count.
+    if (!rec.completed) {
+      rec.completed = true;
+      rec.times = 1;
+      rec.at = new Date().toISOString();
+    }
+    store[chapterId] = rec;
+    return writeProgress(store);
+  }
+
+  function isCompleted(chapterId) { return !!(progressStore()[chapterId] || {}).completed; }
+
+  /* Forget that a chapter was finished — used when it is restarted from the
+     beginning, so the menu offers "Davom etish" again instead of treating the
+     fresh run as already done. */
+  function clearCompleted(chapterId) {
+    var store = progressStore();
+    if (!store[chapterId]) return false;
+    delete store[chapterId];
+    return writeProgress(store);
+  }
+
   return {
     snapshot: snapshot,
     toMarkdown: toMarkdown,
@@ -420,6 +499,10 @@ G.memory = (function () {
     detachFolder: detachFolder,
     supported: supported,
     status: status,
+    progress: progress,
+    markCompleted: markCompleted,
+    isCompleted: isCompleted,
+    clearCompleted: clearCompleted,
     get lastError() { return lastError; },
     get pendingResume() { return pendingResume; },
     set pendingResume(v) { pendingResume = v; },

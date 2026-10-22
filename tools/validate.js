@@ -355,11 +355,16 @@ REQUIRED_GAMES.forEach(g => {
   if (typeof def.create !== "function") errors.push(`minigame ${g} has no create()`);
 });
 
+// Chapter 2 ships several minigames in ONE file, so this map has to grow every
+// time a new one is registered there. Forgetting it makes validate.js crash
+// with ENOENT rather than fail a check — see AGENTS.md §11. Keeping the list in
+// one place and defaulting to `<id>.js` is fine, but anything added to
+// js/data/minigames/chapter2.js must be added here in the same commit.
 function gidFile(id) {
   if (id === "giftShop") return "gift.js";
   if (id === "travelTalk") return "travel.js";
   if (id === "ballPlay") return "ball.js";
-  if (id === "firstNinety" || id === "registerRun") return "chapter2.js";
+  if (id === "firstNinety" || id === "registerRun" || id === "complimentRun") return "chapter2.js";
   return id + ".js";
 }
 
