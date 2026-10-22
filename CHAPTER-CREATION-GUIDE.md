@@ -179,10 +179,17 @@ The full procedure, with API calls and worked examples, is in
 [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md). The short version:
 
 - **Logs** (`3fe2d18e-3d59-8043-a847-ff7e329d51d9`) — his dated reflections.
-  This is the richest source for *his actual situation*. Nested toggles: you must
-  descend two levels (`/v1/blocks/<block_id>/children`).
+  This is the richest source for *his actual situation*. It **is** nested: 10
+  dated toggles plus a child page, 158 blocks in total, so you must descend two
+  levels (`/v1/blocks/<block_id>/children`). Read all ten — the page is not
+  date-sorted.
 - **Book insights** (`4002d18e-3d59-8187-a7bd-c9e21cf223a3`) — **223 highlights,
-  7 notes**, plus nested toggles.
+  7 notes**, and **zero nesting** (`has_children` is false on all 1215). It is
+  a Readwise export flattened to one paragraph per physical line, so a quotation
+  spans 3–8 consecutive blocks and must be *reconstructed* on blank-line
+  boundaries. Do not go looking for toggles: there are none.
+  [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) §2 step 4 has the
+  reconstruction loop; its §6 lists the quotes already verified.
 - **Ai review** (`3ff2d18e-3d59-8054-b6e1-cea7afa470c8`) — batch AI extractions of
   the book. Fast to scan, but it is a *secondary* source: quote the highlight, not
   the extraction, when accuracy matters.
@@ -191,19 +198,27 @@ The full procedure, with API calls and worked examples, is in
 
 Rules:
 
-- **Never print the token.** Get it from the skill file at read time; do not
-  paste it into a report, a commit, or a markdown file.
+- **Never print the token.** It is in `~/.agents/skills/notion/reference.md`; read
+  it into `$headers` at call time and nowhere else. Do not paste it into a report,
+  a commit, or a markdown file — this repository is public.
 - Paginate. Every page endpoint takes `page_size=100` and returns `has_more` +
-  `next_cursor`. Most of these pages are >100 blocks.
-- Dump raw responses into a scratch directory. You will re-read them, and Notion
-  rate-limits.
+  `next_cursor`. **`page_size` clamps to 100 silently** — ask for 200 and you get
+  100 with `has_more: true`, so a loop that ignores `has_more` loses most of the
+  page and reports no error.
+- Cache raw responses while you work (they are re-read constantly and Notion
+  rate-limits), but **do not commit them**. `tools/*.tmp.js` is gitignored;
+  `tools/_*.js` is not. Delete scratch before you report.
 - Never write to Notion from a chapter task. Read-only.
 
 **A trap:** the AI review pages are *extractions*, not the book. This project has
 already been burned by an agent quoting a plausible line that was an AI
 paraphrase. If a quotation matters, find it in the **highlights** page, and if it
 is not there, [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md)
-is the authority on whether it exists.
+is the authority on whether it exists. Two cases are already settled and recorded
+in [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) §4: the "black and white /
+colour" slogan is a **distillation** with zero hits in the highlights, and "one
+size fits one" **is** a real highlight (block 587, Guidara quoting Richard
+Coraine) even though the research file still marks it unverified.
 
 ### 3.2 The book — verified vs. distillation
 
@@ -219,17 +234,21 @@ Known traps — do not put these in a chapter as quotations:
 | claim | status |
 |---|---|
 | "Service is black and white, hospitality is colour" | **a distillation**, not a verified Guidara quotation |
-| "one size fits one" | **could not be verified** — treat as unattributed |
+| "one size fits one" | **VERIFIED in the highlights** (blocks 587–592, id `4002d18e-3d59-814d-a260-e064dbcb5c0a`) — but it is **Richard Coraine's** saying, quoted by Guidara. Attribute it to Coraine or do not quote it |
 | "the answer is yes — what is the question?" | **not in this book** |
 | postcard / granola / umbrella as gifts | **not in the book** |
 | birthday cake | appears **only negatively** |
 
 **A shipped example of the trap:** chapter 2's principle `C2-004` is *named*
-"One size fits one", and its `source` correctly points at real chapters
-("Ch. 16 — earning informality; Ch. 3 — enlightened hospitality is not one
-recipe"). The *idea* is sound and sourced; the *phrase* is not a quote. That is
-the right way to handle it — but if you ever print a quotation in a chapter, it
-must be verifiable.
+"One size fits one". Two things are true at once: the `source` correctly points
+at real chapters ("Ch. 16 — earning informality; Ch. 3 — enlightened hospitality
+is not one recipe"), and — checked directly against the Notion highlights — the
+**phrase itself is genuinely in the book**, at blocks 587–592, but as
+**Richard Coraine's** "most often repeated saying", not Guidara's coinage. So
+naming the principle was safe, and quoting it is safe *if* you attribute it to
+Coraine. The general rule still stands: if you print a quotation in a chapter, it
+must be verifiable **and** correctly attributed — a verified phrase with a wrong
+attribution is still a false claim.
 
 **Chapter 2's eight principles, as a model of sourcing:**
 

@@ -14,6 +14,74 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈07:42 (Tashkent) — the wave: mining his Notion, measured rather than assumed
+
+> Produce the definitive recipe for how a future agent mines the user's Notion
+> workspace for chapter material … with exactly five sections: inventory, the
+> mining procedure, a selection filter, the traps, citation discipline.
+
+Sub-task of the 07:20 guide-set wave: the **Notion-mining** guide, the one guide
+that had to be written by *actually calling the API and counting blocks* rather
+than by describing what is presumably on the pages.
+
+**What it establishes, and these are the binding parts:**
+
+- **The book page has a header that is also a test.** `Highlight: 223; Note: 7`,
+  and the reconstruction measures exactly **230 records, 223 without a note, 7
+  with**. A future agent has a self-check: if your parse does not reproduce
+  223 + 7, your reconstruction is wrong, and you must not quote from it. This
+  replaces the previous vague "~223 highlights" with a verifiable invariant.
+- **A regex for `\(.*\)` gives 14 notes, not 7.** Guidara uses parentheses too.
+  Any agent that trusts the regex will attribute five of his own asides
+  (`(Total cost: $0.)`, `(if you're giving a gift, it should be awesome)`) to the
+  223. The seven real ones are enumerated by block index in the guide, so this is
+  now a lookup, not a judgement call.
+- **"One size fits one" is verified and the research file is wrong about it.** It
+  is a highlight at block 587, Guidara quoting Richard Coraine. The guide records
+  this as an *upgrade*. Precedent for the general rule: when a live read
+  contradicts a prose file, the live read wins and the prose file gets corrected —
+  the same rule `AGENTS.md` §15 already applies to the validators.
+- **The black-and-white slogan stays a distillation, now with evidence:** zero
+  hits in 230 records for `black and white`, `black-and-white`, `colour`,
+  `Service is black and white`. It was previously "we believe this is a
+  distillation"; it is now "we searched and it is not there".
+- **A quotation is a block range, not a line.** The page is a Readwise export
+  flattened to one paragraph per physical line, at *zero* nesting. So a citation
+  is a block index plus the id of the block carrying the `▪`, and the gluing
+  spaces between blocks are reconstructed rather than source. Both facts are
+  written into the citation-discipline section so nobody mistakes a stitched quote
+  for a verbatim one.
+- **Half the Tasks database is empty, and the empty half is the tempting half.**
+  Measured row by row: 5 of 12 row-pages have 0 blocks, and the largest
+  (Avtobusda, 125 blocks) is a *proposal template* whose bullets are prompts to be
+  filled. This is the finding that stops a chapter being planned around a
+  commitment that does not exist yet.
+- **Never print the token, and never put a raw dump in the repo.** The token is at
+  `~/.agents/skills/notion/reference.md` (also present in `SKILL.md`, same value,
+  verified by hash — the earlier claim that `SKILL.md` has none was wrong);
+  dumps are `tools/_*.js` scratch, which is *not* gitignored and must be cleaned
+  before reporting.
+
+**What it produced:** [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md), a
+measured procedure with block counts for all 14 pages, the reconstruction loop,
+17 verified quotations with block ids, the seven notes transcribed, a six-check
+selection filter with three worked examples, and a "do not attribute this to
+Guidara" list. Corrections landed in
+[CHAPTER-CREATION-GUIDE.md](CHAPTER-CREATION-GUIDE.md) §3.1, which had said the
+book page had "nested toggles" — it has none, and that single false sentence
+would have sent the next agent looking for a structure that does not exist.
+
+**The general lesson, worth carrying past this file:** every number in this guide
+was measured, and several were wrong on the first pass — the Tasks row count
+(11 → 12), Avtobusda ("all placeholder" → a real quote, a real checklist and one
+empty table), the Innovation page ("medium" → 6 blocks), the number of mid-word
+records (13 → 28 lower-case starts, of which only two are truly mid-word), and the
+token's file. Each was caught by re-running the query, not by re-reading the
+prose. **A count you did not fetch this session is a guess with a number attached
+to it.**
+
+---
+
 ## 2026-10-22, ≈07:20 (Tashkent) — the wave: a guide set for building chapters, and the rule that we may ask him
 
 > After you are done and pushed / Create a super "Chapter creation guide", I mean,
@@ -154,9 +222,37 @@ The minigame agent returned a 6 KB stub (§1 host contract + an empty §2 headin
 after a full turn, and never recovered. Rather than re-dispatch a third time I
 wrote the file myself from the verified findings — archetypes, the "is it a
 minigame?" test, the five intel-wiring modes, the win/lose contract, readability,
-build order, anti-patterns. It is now `MINIGAME-DESIGN-GUIDE.md`, 400 lines.
+build order, anti-patterns. It became `MINIGAME-DESIGN-GUIDE.md` (588 lines).
 **Recorded because the delegation failed silently**: the agent reported nothing,
 the file existed, and only reading it end-to-end revealed it stopped at a stub.
+
+### Follow-up: the minigame guide's archetype table was wrong, and a second pass caught it
+
+Reading the shipped guide against the code a second time found four claims that
+would have mis-taught the next author. All four are now fixed in
+`MINIGAME-DESIGN-GUIDE.md` §2, §4 and §8:
+
+| claimed | actual |
+|---|---|
+| `firstNinety` = "allocation under a budget, 90 seconds, 14 pupils" | it is a **self-framing sequence**: 3 of 6 moves, the first move sets a frame that doubles the cost of the neglected axis (`chapter2.js:181-185`), win `tw>=7 && to>=4`. The 70s/14-name allocation game is `registerRun` — the dead one. |
+| `travelTalk` = "route / sequence planning" | it is a **cumulative chain**: five moments × three registers, no single answer decides, win at `trust >= 7` of 10. Nothing is sequenced. |
+| every duration "30–90s" / "45–90s" | the five *reachable* games run **15–60s**. Only the unused `registerRun` has a 70s clock. A 90s target would have taught an author to ship a game twice as long as any working example. |
+| `principleIds` = "optional, older key name" | it is **documentation only**. The host copies `def.principles` → `result.principleIds` (`minigames.js:92`) and **nothing reads it**; `def.principleIds` is never read at all. Teaching must travel in `notes[]`. |
+
+Also corrected: `registerRun` is **463** lines (580→1042), not "~420/~460", and
+its intel branch is inert as well as unreachable — the ids it tests
+(`intel_zarina`, `intel_bekzod`, `intel_jasur`) are **never granted anywhere**;
+the granted ids are `intel_zarina_leader`, `intel_bekzod_new`,
+`intel_bekzod_way`, `intel_jasur_joke`, `intel_jasur_leader`. So wiring the game
+without remapping the ids would leave §4.2's pattern unreachable — the guide now
+says that explicitly instead of holding the dead game up as the reference.
+
+**The durable lesson, and it is the same one as the AGENTS.md table above:** a
+guide can pass every gate (it is prose; no validator reads it) and still teach
+the wrong taxonomy. The archetype list was *derived by reading*, not *measured*,
+and two of six entries were assigned to the wrong game. **When a guide names a
+shipped example, check the example's win condition in the source, not the
+guide's own summary of it.**
 
 ### Follow-up: an encoding bug that only a real check caught
 
@@ -173,6 +269,55 @@ prefix decoding swallowed the rest of the line.
 checker was written to catch the specific defect. This project has now had that
 lesson twice — a probe that passed for months without calling `map.build()`, and
 an encoding check that passed on a file that was visibly broken.
+
+### Follow-up: four defects in `MINIGAME-DESIGN-GUIDE.md` that survived its own review pass
+
+The reference guide was written and then re-read against the code, and the
+archetype table was fixed. A third pass, checking the guide's *contract* claims
+line by line against `js/game/minigames.js` and `js/game/debrief.js`, found four
+more. Each is a plausible-sounding sentence that contradicts the source, so each
+would have been copied by the next author:
+
+| guide says | code says |
+|---|---|
+| §1.2 `w: 852, h: 418, // content space` | `minigames.js:27` is `w: W, h: H` = **960, 600**. The content size is what `ctx.clip()` uses, not what `api.w` reports. Laying out from `api.w` and subtracting `(54,108)` double-corrects. |
+| §1.5 `detail` "shown in the debrief" | `debrief.js` never reads `detail` — `applyMinigameResult` (`dialogue.js:107-120`) touches only `choiceId`, `effects`, `notes`. `registerRun`'s carefully built `"ismlar 5/14, …"` (`mg-chapter2.js:729`) is shown to nobody. |
+| §6.2 font `'Segoe UI', system-ui, sans-serif` | zero `Segoe UI` occurrences in `js/data/minigames/`; the shipped constant is `"system-ui, sans-serif"` (`gift.js:26`, `mg-chapter2.js:40`) and §2 forbids web fonts. |
+| §6.3 "Minimum 44 × 44" | the shipped minimum is **42** (`mg-chapter2.js:738, :741`). 44 is the target most elements exceed; stating it as the floor makes correct code look non-conforming. |
+
+Also found: the guide treats the `registerRun` intel pre-fill as the model for
+"reveal information", but that block tests ids the story never grants (§4.2 of
+the same wave), so the pattern's only canonical example never executes.
+
+**Two lessons.** (1) A prose guide passes every gate — no validator reads it — so
+"we reviewed the guide" has to mean *checking its claims against source*, not
+re-reading it for tone. Every one of these four is a sentence that reads as
+authoritative. (2) The archetype table was caught by re-reading; these were
+caught by **grepping the code for each claim**, which is the only method that
+scales.
+
+### Follow-up: two files are both called `chapter2.js`, and every citation in the guides was ambiguous
+
+`js/data/chapter2.js` (the **story script**, 1,642 lines) and
+`js/data/minigames/chapter2.js` (the **minigames**, 1,403 lines) share a basename
+in different directories. Guides cited both as `chapter2.js:NNN`, including for
+the `c2_room_cold` flag (story, `:400`) and the intel grant sites (story,
+`:183/:491/:866/:1015/:1034/:1171`) — while the intel *reads* are in the minigame
+file.
+
+Both files are 1,000+ lines, so **nearly every in-range line number exists in
+both**. A citation "resolves" either way and can silently point at unrelated
+code: `mg-chapter2.js:400` is pupil-drawing, `story-chapter2.js:400` is the flag.
+This is worse than a broken reference, because there is nothing to notice.
+
+The authoring-depth guide now disambiguates explicitly — `mg-chapter2.js` for the
+minigame file, `story-chapter2.js` for the story file, and an unprefixed
+`chapter2.js` means the *minigame* file by convention — and says so in a header a
+reader cannot miss.
+
+**The durable lesson:** when two tracked files share a basename, a line-number
+citation without its directory is **not a citation**. Check the path, never just
+that the line exists.
 
 ## 2026-10-22, ≈07:00 (Tashkent) — the wave: Coolify documented, and three ways it can silently not serve
 

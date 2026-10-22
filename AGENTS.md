@@ -939,7 +939,7 @@ There are **two** deploys of the same static site, and they are not the same thi
 | | GitHub Pages | Coolify |
 |---|---|---|
 | URL | https://azizbekteacher.github.io/School_story/ | http://3jh6dtoqcwuhghpx7wggj57l.169.58.215.190.sslip.io |
-| Triggered by | push to `master` (`.github/workflows/pages.yml`) | **manual** — no webhook is wired (see gotcha 4) |
+| Triggered by | push to `master` (`.github/workflows/pages.yml`) | **also a push to `master`** — auto-detected by polling, no webhook needed (see gotcha 4) |
 | Serves | repo root **minus** `.git`, `.github`, `tools/`, `_stable-play/`, `play-stable.bat` | repo root, so `tools/` and `play-stable.bat` **are** publicly reachable |
 
 [GitHub Pages](https://azizbekteacher.github.io/School_story/) is the
@@ -1021,16 +1021,31 @@ and still did not serve a page. Check them in this order when the site is down.
    kept routing to a closed port and the edge returned **502**. Change the port in
    the UI *and* regenerate those labels, or the fix silently reverts. Diagnose on
    the host: `docker inspect <container> --format '{{json .Config.Labels}}'`.
-4. **Auto-deploy is enabled but inert.** `is_auto_deploy_enabled` is `true`, yet
-   the GitHub repo has **zero webhooks** (`gh api repos/azizbekteacher/School_story/hooks`
-   → `[]`) and the source is the anonymous "Public GitHub" app, not an installed
-   GitHub App. Nothing notifies Coolify on push. Treat every deploy as manual:
-   push to `master` for Pages, then POST `/deploy` for Coolify.
+4. **Auto-deploy DOES work — do not "fix" it by hand.** An earlier version of
+   this gotcha claimed auto-deploy was inert because the GitHub repo has **zero
+   webhooks** (`gh api repos/azizbekteacher/School_story/hooks` → `[]`) and the
+   source is the anonymous "Public GitHub" app. That reasoning was wrong, and the
+   user corrected it: *"its not manual, it can detect automatically."* Coolify
+   detects the push by **polling** the public repo, so no webhook is involved —
+   which is exactly why looking for a webhook finds nothing and proves nothing.
+   Verified empirically: push `830b8c2..268cf31`, then fetch the new guides from
+   the sslip.io URL — all five return **HTTP 200 with the current text** (e.g.
+   `AGENTS.md` serves "Ask him before you invent him"). So: **push to `master` and
+   wait**; both Pages and Coolify update on their own. POST `/deploy` is only for
+   forcing a redeploy when you have *not* pushed (e.g. after changing Coolify's own
+   env vars), not the normal path.
+
+   **The general lesson, since this is the second time:** "I looked for mechanism X
+   and found nothing" is not evidence that the effect does not happen. Test the
+   *effect* — here, whether the served bytes changed — before writing down a
+   mechanism. A wrong gotcha is worse than no gotcha, because it tells the next
+   agent to do manual work that can actively fight the automation.
 5. **Coolify builds from GitHub, not your working tree.** Local commits that have
    never been pushed do not exist for Coolify. This file itself 404'd on the
    Coolify URL while local `master` was four commits ahead of `origin/master`.
    `git status` being clean does not mean it is deployed — check
-   `git rev-list --left-right --count origin/master...HEAD`.
+   `git rev-list --left-right --count origin/master...HEAD`. (Auto-deploy does not
+   remove this: it triggers on the *push*, so unpushed work is still invisible.)
 6. **Static pack copies the whole repo.** `tools/`, `play-stable.bat` and every
    `.md` in the root are reachable on the Coolify URL, because only `.git`,
    `Dockerfile`, `docker-compose.yaml` and `.env` are stripped. GitHub Pages is

@@ -6,6 +6,19 @@ a quiz wearing an animation.
 Read [AGENTS.md](AGENTS.md) §9 first for the host contract in brief. This file is
 the procedure and the craft.
 
+> **Citation convention — there are TWO files called `chapter2.js`.** One is the
+> story (`js/data/chapter2.js`, 1,642 lines); the other is the minigames
+> (`js/data/minigames/chapter2.js`, 1,403 lines). Both are 1,000+ lines, so a
+> bare `chapter2.js:400` "resolves" either way while pointing at unrelated code —
+> `:400` is `{ flag: "c2_room_cold" }` in the story and a `ctx.arc` in the
+> minigame file. Every citation in this guide is therefore prefixed:
+> **`story-chapter2.js`** = `js/data/chapter2.js`,
+> **`mg-chapter2.js`** = `js/data/minigames/chapter2.js`.
+> An unprefixed `chapter2.js` means the minigame file only where the path is
+> spelled out in full. **Check the directory before you trust a line number** —
+> this ambiguity is also live in `AGENTS.md` and in `validate-chapter2.js`'s
+> messages.
+
 ---
 
 ## 1. The host contract
@@ -46,7 +59,7 @@ The host reserves:
 
 ```js
 {
-  w: 852, h: 418,          // content space
+  w: 960, h: 600,          // ⚠ the FULL canvas — NOT content space. See trap below.
   cfg: <node.config>,      // whatever the story node's config field holds
   state: {                 // live-ish snapshot at create time
     flags, intel, trust, beat, scores
@@ -56,6 +69,14 @@ The host reserves:
   finish(result)           // call EXACTLY ONCE
 }
 ```
+
+> **Verified trap — `api.w`/`api.h` are the full canvas, not content space.**
+> `js/game/minigames.js:11` is `var W = 960, H = 600`, and `:27` passes
+> `w: W, h: H` straight through. Only the **clip rect** is 852×418. No shipped
+> game reads `api.w`/`api.h`; each hardcodes its own `var W = 852, H = 418`
+> (`js/data/minigames/chapter2.js:42`), which is correct. Layout with `api.w` and
+> you draw past the clip and silently lose the right-hand third of your UI.
+> **Trust the clip rect, not `api.w`.**
 
 `api.state.intel` is an **array of intel ids** — not an object. The shipped
 pattern is:
@@ -72,7 +93,7 @@ G.minigames.register(id, {
   title: "…",            // host draws this
   subtitle: "…",         // optional
   controls: "…",         // footer, fades after ~4s
-  principleIds: ["C2-003"],   // optional, older key name
+  principleIds: ["C2-003"],   // DOCUMENTATION ONLY — nothing reads it (see §1.5)
   create: function (api) {
     return {
       update:   function (dt) {},        // dt seconds, capped 0.05
@@ -105,17 +126,47 @@ Never call `finish` inside `draw` — it belongs in `update` or an input handler
 {
   win: true,                       // routes to node.onWin / node.onLose
   choiceId: "CH2_MG_NINETY_WIN",   // recorded; needs a choiceNotes entry
-  detail: "…",                     // shown in the debrief
+  detail: "…",                     // AUTHORING ONLY — nothing shows it. See §1.5.
   notes: [ { principle: "C2-001", text: "…", verdict: "good" } ],
   effects: [ /* effect DSL, applied by the engine */ ]
 }
 ```
+
+> **Verified trap — `detail` is never shown to the player.**
+> `js/game/dialogue.js:107-120` (`applyMinigameResult`) reads only `choiceId`,
+> `effects` and `notes`. `js/game/debrief.js` contains **zero** references to
+> `detail`. `registerRun` builds a genuinely useful summary string
+> (`js/data/minigames/chapter2.js:729` — "ismlar 5/14, ko'rilgan 2, xato 1,
+> ishonch 3/4") that no human will ever read. Use `detail` for your own
+> debugging if you like, but **teaching must travel in `notes[]`** — that is the
+> only path the debrief and Xulosalar consume.
+
+> **Verified trap:** `principleIds` / `principles` on the *definition* are
+> **documentation only**. The host copies `def.principles` → `result.principleIds`
+> (`js/game/minigames.js:92`) and **nothing reads `result.principleIds`**;
+> `def.principleIds` is never read at all. A minigame whose only teaching signal
+> is that key teaches nothing. **Put the principle on every `notes[]` entry** —
+> that is the path the debrief and the Xulosalar tab actually consume.
 
 ### 1.6 Missing game fallback
 
 A `game:` id with no registration resolves as a **win** with a "game not found"
 detail, so the mission never soft-locks. That is safety, not a licence — the
 validator fails an unregistered id.
+
+> **Verified bug — a missing game id DOUBLE-ROUTES and double-applies effects.**
+> `minigames.js:18-23` calls `callbacks.onFinish(...)` synchronously and *then*
+> returns `false`; `dialogue.js:100-104` sees `!ok` and routes a **second** time.
+> Measured in the vm sandbox with one node setting `{trust:1}` plus one `good`
+> note: **expected +1 trust / +1 note, actual +2 / +2.** Flags and intel are
+> idempotent (a set is a set), so the duplication hides in the two things that
+> are *additive* — trust and the note count — and the note count is what the
+> archetype band is computed from. A typo'd `game:` id therefore does not fail
+> loudly; it silently inflates the player's score.
+>
+> **Practical consequence:** treat a missing game as a red alert, not a graceful
+> degradation. After renaming any game id, re-run `playtest.js --chapter=…` **and**
+> check that `verify-file-protocol.js`'s trust/notes totals did not move.
 
 ### 1.7 Minimal conforming skeleton
 
@@ -165,7 +216,7 @@ validator fails an unregistered id.
             ctx.strokeStyle = sel === i ? "#d9a44c" : "rgba(217,164,76,.30)";
             ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
             ctx.fillStyle = "#e6dac8";
-            ctx.font = "15px 'Segoe UI', system-ui, sans-serif";
+            ctx.font = "15px system-ui, sans-serif";   // NOT 'Segoe UI' — see §6.2
             ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2);
           }
           ctx.textAlign = "left";   // leave the context as you found it
@@ -204,14 +255,15 @@ in this engine — not the games themselves.
 | 6 | **Allocation under a budget** | spend a scarce resource across competing claims, where you cannot have everything | `registerRun` (ch2) — 70s buys 14 names (3s) or details (4s); wrong names cost 5s **and** trust | 70s clock |
 
 > **`registerRun` is dead code.** It is registered at
-> `js/data/minigames/chapter2.js:580` (~420 lines) but **no story node ever
-> references it** — the only `game:` nodes in chapter 2 are `firstNinety`
-> (`chapter2.js:367`) and `complimentRun` (`chapter2.js:723`). The `names` beat
+> `js/data/minigames/chapter2.js:580` (580→1042, **463 lines**) but **no story node
+> ever references it** — the only `game:` nodes in chapter 2 are `firstNinety`
+> (`story-chapter2.js:367`) and `complimentRun` (`story-chapter2.js:723`). The
+> `names` beat
 > is delivered by an NPC scene instead. It passes every gate, because nothing
 > checks that a registered game is actually reachable. **See §8, anti-pattern 7.**
 >
 > Its intel branch is inert too: the ids it pre-fills (`intel_zarina`,
-> `intel_bekzod`, `intel_jasur`, `chapter2.js:608-620`) are never granted
+> `intel_bekzod`, `intel_jasur`, `mg-chapter2.js:608-620`) are never granted
 > anywhere. The granted ids are `intel_zarina_leader`, `intel_bekzod_new`,
 > `intel_bekzod_way`, `intel_jasur_joke`, `intel_jasur_leader`. Wiring the game
 > without mapping those ids would leave §4.2's pattern unreachable.
@@ -314,7 +366,7 @@ same game; the *experience* is different.** That is the standard.
 the intel *and* show the receipt.
 
 > **Caveat, verified:** the shipped example of this pattern is `registerRun`
-> (`chapter2.js:608-620`), which is **dead code** — and the ids it tests
+> (`mg-chapter2.js:608-620`), which is **dead code** — and the ids it tests
 > (`intel_zarina`, `intel_bekzod`, `intel_jasur`) are **never granted anywhere**.
 > The granted ids are `intel_zarina_leader`, `intel_bekzod_new`,
 > `intel_bekzod_way`, `intel_jasur_joke`, `intel_jasur_leader`. So even once
@@ -407,8 +459,20 @@ notes: [{
 }]
 ```
 
-`verdict` drives the score: `good` +1, `bad` −1, `ok`/`weak` no change but they
-still appear in the debrief. Use `weak` for "you did it but it did not land".
+`verdict` drives the score. Two different scorers exist, and they are **not** the
+same — know which one you are feeding:
+
+- **`state.js` `scores`** (the per-principle tally): `good` +1, `bad` −1;
+  `ok`/`weak` leave it unchanged.
+- **`state.js:180-188` `avgQuality()`** (what the archetype bands read):
+  `good` +2, `ok` +1, `weak` **0**, `bad` −1 — and it divides by the count of
+  **all** notes. So `weak` is not neutral: it adds a `0` to the numerator and a
+  `+1` to the denominator, which **pulls the average down**.
+
+That distinction matters: `weak` still appears in the debrief as a teaching
+moment, but emitting a lot of them moves the player toward a colder archetype.
+Use `weak` for "you did it but it did not land" — deliberately, not as a
+free label for every uncertain choice.
 
 ### 5.3 A loss must not dead-end
 
@@ -461,13 +525,23 @@ colour.
 
 ### 6.2 Typography
 
-`'Segoe UI', system-ui, sans-serif`. Sizes in the shipped games: title 17–20px,
-body 13–15px, small 11–12px. **Anything under 11px is not readable on a phone.**
+`system-ui, sans-serif`. That is the shipped constant (`js/data/minigames/gift.js`
+`SANS`, `js/data/minigames/chapter2.js:40`) and it has **zero `Segoe UI`
+references** anywhere in `js/data/minigames/`. Do not add `'Segoe UI'` — that is
+a Windows-only font name and, being a web-font-style external name, it also
+breaks AGENTS §2's no-external-assets rule in spirit. Sizes in the shipped games:
+title 17–20px, body 13–15px, small 11–12px. **Anything under 11px is not readable
+on a phone** — and note the shipped games already violate this in places
+(`chapter2.js` draws at 9.5px), so copy the *rule*, not the floor.
 
 ### 6.3 Hit targets
 
-Minimum **44 × 44 content-space px** (Apple/Android guidance), and the shipped
-games are larger. A row you can only hit with a precise click is a bug on touch.
+Target **44 × 44 content-space px** (Apple/Android guidance). **Do not treat 44 as
+the shipped floor — the shipped minimum is 42** (`js/data/minigames/chapter2.js:738`
+and `:741` both use `h: 42`), so "match the existing games" gets you under the
+target. 44 is the goal; 42 is what chapter 2 currently ships; anything smaller
+than that is a bug you are introducing. A row you can only hit with a precise
+click is a bug on touch.
 
 ### 6.4 Affordances
 
@@ -545,7 +619,7 @@ a player can see the problem. Do not loosen its thresholds.
    *Fix:* lay out inside the content rect; the host already translated for you.
 6. **`finish()` called twice, or from `draw`.** Undefined routing. *Fix:* the
    `finished` guard, called from `update`/input only.
-7. **Registered but unreachable — the `registerRun` bug.** ~460 lines of dead
+7. **Registered but unreachable — the `registerRun` bug.** 463 lines of dead
    code shipped in chapter 2 because nothing asserts a registered game is
    referenced by a node. *Fix:* after registering, grep the story data for the
    game id, and add the assertion to your chapter validator. **A registered game
