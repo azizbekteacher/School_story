@@ -63,6 +63,7 @@ G.memory = (function () {
       flags: G.state.flags,
       notes: G.state.notes,
       journal: G.state.journal,
+      userNotes: G.state.userNotes(),
       choicesMade: G.state.choicesMade.slice(),
       marks: G.state.marks,
       scores: G.state.scores,

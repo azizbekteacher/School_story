@@ -11,6 +11,7 @@ G.dialogue = (function () {
   var typing = false;
   var choiceSel = 0;
   var multiPicked = [];
+  var multiReturn = null;   // the multi node an option reply must come back to
   var multiReturn = null;
   var pendingNext = null;
   var onSceneEnd = null;
@@ -46,6 +47,21 @@ G.dialogue = (function () {
     if (!n) {
       console.warn("Missing node: " + id + " in scene " + sceneKey);
       endScene();
+      return;
+    }
+    /* Returning to the multi node we came from (an answer's `next` points back
+       at it) means "ask another question", not "start over": multiPicked is
+       kept, so already-asked questions stay marked and the max still holds. */
+    if (multiReturn && id === multiReturn && n.type === "multi") {
+      multiReturn = null;
+      nodeId = id;
+      node = n;
+      typed = 0;
+      typing = false;
+      choiceSel = 0;
+      visT = 0;
+      if (otherQuestionsLeft()) return;
+      finishMulti();
       return;
     }
     nodeId = id;
@@ -328,6 +344,17 @@ G.dialogue = (function () {
     G.audio.select();
     if (o.intel) G.state.addIntel(o.intel);
     if (o.effects && o.effects.length) applyEffects(o.effects);
+
+    /* An option may name its own `next`: the answer to the question that was
+       just asked. That reply then routes back to this same multi node, so the
+       player can spend another question and hear another answer. Without this,
+       a `multi` with per-option replies silently drops them and jumps straight
+       to the node's own `next` — the whole point of asking is lost. */
+    if (o.next) {
+      multiReturn = nodeId;
+      goto(o.next);
+      return;
+    }
 
     if (otherQuestionsLeft()) {
       // stay on this node, mark the picked one
@@ -632,6 +659,10 @@ G.dialogue = (function () {
 
       // text
       ctx.save();
+      // Explicit left alignment: a preceding surface (the number badge above, or
+      // any earlier draw) can leave textAlign as "center", which would centre
+      // the option on x+56 and push long choices off the left of the panel.
+      ctx.textAlign = "left";
       ctx.font = "15px 'Segoe UI', system-ui, sans-serif";
       ctx.fillStyle = locked ? "rgba(170,160,148,.55)" : (sel ? "#fff5e2" : "#e6dac8");
       ctx.textBaseline = "middle";

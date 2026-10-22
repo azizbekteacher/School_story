@@ -11,6 +11,7 @@ G.state = (function () {
   var journal = [];         // free notes
   var choicesMade = [];     // ordered choice ids
   var marks = {};           // choiceId -> true
+  var userNotes = [];       // the player's own notes (Qaydlar), { id, text, at }
   var objectiveOverride = null;
   var started = false;
   var finished = false;
@@ -26,6 +27,7 @@ G.state = (function () {
     journal = [];
     choicesMade = [];
     marks = {};
+    userNotes = [];
     objectiveOverride = null;
     started = false;
     finished = false;
@@ -98,8 +100,47 @@ G.state = (function () {
     emit("journal");
   }
 
+  /* The player's own notes. Unlike `journal` (written by the story) these are
+     typed by the player in the menu, and they belong to them alone: the save
+     carries them so a note survives a reload. Deliberately capped so a runaway
+     paste cannot bloat the save file. */
+  var NOTES_MAX = 200;
+  var NOTE_CHARS_MAX = 2000;
+
+  function addUserNote(text) {
+    var t = String(text == null ? "" : text).replace(/\s+$/, "");
+    if (!t) return null;
+    if (t.length > NOTE_CHARS_MAX) t = t.slice(0, NOTE_CHARS_MAX);
+    if (userNotes.length >= NOTES_MAX) return null;
+    var n = { id: "n" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), text: t, at: new Date().toISOString() };
+    userNotes.push(n);
+    emit("userNotes");
+    return n;
+  }
+
+  function updateUserNote(id, text) {
+    for (var i = 0; i < userNotes.length; i++) {
+      if (userNotes[i].id !== id) continue;
+      var t = String(text == null ? "" : text).replace(/\s+$/, "");
+      if (!t) return false;
+      userNotes[i].text = t.length > NOTE_CHARS_MAX ? t.slice(0, NOTE_CHARS_MAX) : t;
+      emit("userNotes");
+      return true;
+    }
+    return false;
+  }
+
+  function removeUserNote(id) {
+    for (var i = 0; i < userNotes.length; i++) {
+      if (userNotes[i].id !== id) continue;
+      userNotes.splice(i, 1);
+      emit("userNotes");
+      return true;
+    }
+    return false;
+  }
+
   function recordChoice(id) {
-    if (!id) return;
     if (marks[id]) { /* still push, repeated visits are meaningful */ }
     marks[id] = true;
     choicesMade.push(id);
@@ -159,6 +200,7 @@ G.state = (function () {
       journal: journal,
       choicesMade: choicesMade.slice(),
       marks: marks,
+      userNotes: userNotes,
       objectiveOverride: objectiveOverride,
       chapter: chapter,
       started: started,
@@ -187,6 +229,10 @@ G.state = (function () {
     if (Array.isArray(s.choicesMade)) choicesMade = s.choicesMade.slice();
     else if (s.choicesMade !== undefined) bad.push("choicesMade");
     if (isObj(s.marks)) marks = s.marks; else if (s.marks !== undefined) bad.push("marks");
+    if (Array.isArray(s.userNotes)) userNotes = s.userNotes.filter(function (n) {
+      return n && typeof n === "object" && typeof n.text === "string";
+    });
+    else if (s.userNotes !== undefined) bad.push("userNotes");
     if (typeof s.objectiveOverride === "string" || s.objectiveOverride === null) objectiveOverride = s.objectiveOverride;
     if (typeof s.chapter === "string") chapter = s.chapter;
     if (typeof s.started === "boolean") started = s.started;
@@ -207,6 +253,10 @@ G.state = (function () {
     setBeat: setBeat,
     addNote: addNote,
     addJournal: addJournal,
+    addUserNote: addUserNote,
+    updateUserNote: updateUserNote,
+    removeUserNote: removeUserNote,
+    userNotes: function () { return userNotes; },
     recordChoice: recordChoice,
     hasChosen: hasChosen,
     setObjectiveOverride: setObjectiveOverride,

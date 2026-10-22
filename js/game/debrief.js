@@ -216,6 +216,10 @@ G.debrief = (function () {
     // verdict and the overview is a look back at what has been taught so far.
     var storyTitle = (G.data && G.data.story && G.data.story.title) || "Tahlil";
     ctx.save();
+    // Set alignment explicitly rather than inheriting it: whatever drew last may
+    // have left textAlign as "center", and then this header (drawn at px+34 with
+    // a 26px font) extends off the left edge of the panel.
+    ctx.textAlign = "left";
     ctx.font = "bold 26px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "#f2dfae";
     ctx.fillText(mode === "final" ? "Birinchi kun — tahlil" : storyTitle + " — tahlil", px + 34, py + 48);
@@ -305,6 +309,12 @@ G.debrief = (function () {
     ctx.beginPath();
     ctx.rect(px + 26, py + 132, pw - 52, ph - 180);
     ctx.clip();
+    /* The tab strip above leaves textAlign as "center". Every page body draws
+       left-aligned text at an explicit x, so reset it once here rather than
+       relying on each page to remember — an inherited "center" makes a long
+       paragraph start at x - width/2, i.e. off the left edge of the panel. */
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
     if (page === 0) drawScore(ctx, px + 34, py + 140, pw - 68);
     else if (page === 1) drawChoices(ctx, px + 34, py + 140, pw - 68);
     else if (page === 2) drawIdeas(ctx, px + 34, py + 140, pw - 68);

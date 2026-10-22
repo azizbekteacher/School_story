@@ -27,6 +27,10 @@ G.input = (function () {
     canvas = cv;
 
     window.addEventListener("keydown", function (e) {
+      // A real text field owns the keyboard. Without this guard, typing a note
+      // walks the hero and presses buttons in the background.
+      var t = e.target;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
       var k = keyName(e);
       if (!k) return;
       // stop page scroll / tab-focus jumps while playing

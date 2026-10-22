@@ -15,6 +15,7 @@ window.G = window.G || {};
   var pendingState = null;
   var storyLoaded = false;
   var showHelp = false;
+  var pendingRemoteSave = null;   // a newer cloud save waiting to be loaded
 
   function boot() {
     G.memory.install();
@@ -41,7 +42,64 @@ window.G = window.G || {};
     }
 
     bindFirstGesture();
+    initAccount();
     requestAnimationFrame(loop);
+  }
+
+  /* Account init is deliberately fire-and-forget: boot must not wait on the
+     network, and with no Worker configured G.account settles instantly. A game
+     played from file:// with no connection does not notice this code exists. */
+  function initAccount() {
+    if (!G.account || !G.account.init) return;
+    try {
+      G.account.init().then(function (u) {
+        if (u) {
+          if (G.quest && G.quest.showToast) {
+            G.quest.showToast("Hisob: " + (u.name || u.email || "ulandi"), "good");
+          }
+          offerRemoteSave();
+        }
+      }, function () { /* never let auth break the boot */ });
+    } catch (e) {
+      console.warn("account init failed", e);
+    }
+  }
+
+  /* Debounced cloud push, so a burst of state changes becomes one request.
+     Signed out, or with no Worker, this is a no-op. */
+  var cloudTimer = null;
+  function cloudSyncSoon() {
+    if (!G.account || !G.account.isSignedIn || !G.account.isSignedIn()) return;
+    if (cloudTimer) return;
+    cloudTimer = setTimeout(function () {
+      cloudTimer = null;
+      try {
+        var snap = G.memory.snapshot();
+        if (snap) G.account.sync(snap);
+      } catch (e) { /* a failed sync is not a problem the player needs */ }
+    }, 4000);
+  }
+
+  /* Compare the cloud save with the local one and, if the cloud copy is newer,
+     ask before replacing local progress — never silently. The loser is kept:
+     a device whose clock is wrong must not be able to delete real progress. */
+  function offerRemoteSave() {
+    if (!G.account || !G.account.pull) return;
+    G.account.pull().then(function (remote) {
+      if (!remote || !remote.save) return;
+      var local = G.memory.load();
+      var remoteAt = Date.parse(remote.updatedAt || remote.save.savedAt || "") || 0;
+      var localAt = Date.parse((local && local.savedAt) || "") || 0;
+      if (!local || remoteAt > localAt + 60000) {
+        pendingRemoteSave = remote.save;
+        if (G.quest && G.quest.showToast) {
+          G.quest.showToast("Bulutda yangiroq saqlangan o'yin bor — TAB orqali yuklang", "info");
+        }
+      } else if (local && localAt > remoteAt + 60000) {
+        // local is ahead: push it so the account is up to date
+        G.account.sync(local);
+      }
+    }, function () { /* offline is normal */ });
   }
 
   function bindFirstGesture() {
@@ -79,7 +137,10 @@ window.G = window.G || {};
     G.quest.reset();
     G.world.init();
     G.state.started = true;
-    if (G.state.onChange) G.state.onChange(function () { G.memory.autosave("state"); });
+    if (G.state.onChange) G.state.onChange(function () {
+      G.memory.autosave("state");
+      cloudSyncSoon();
+    });
 
     var story = G.data.story;
     if (story && story.npcs) G.world.setNpcs(story.npcs);
@@ -234,15 +295,17 @@ window.G = window.G || {};
         }
       }
       // Ctrl/Cmd-free keyboard route: Escape also opens it while free-roaming,
+      // The notebook is checked before anything else that reads Escape, because
+      // while the player is typing a note the textarea must own the keyboard.
+      if (G.notebook.isOpen()) {
+        G.notebook.update(dt);
+        return;
+      }
+
       // since nothing else claims Escape in the play state.
       if (menuButtonVisible() && G.input.wasPressed("escape")) {
         G.input.consume("escape");
         if (G.debrief.openOverview()) { G.audio.select(); return; }
-      }
-
-      if (G.notebook.isOpen()) {
-        G.notebook.update(dt);
-        return;
       }
 
       if (G.minigameHost.isActive()) {

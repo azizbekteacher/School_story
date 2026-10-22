@@ -273,9 +273,31 @@ G.world = (function () {
     }
   }
 
+  /* True when a decor item lies entirely outside the camera view. Decor items
+     carry a world-space x/y and either a w/h box (rugs) or are point-anchored
+     labels/sprites (signs, lamps, plants); an 80px margin covers the widest
+     label plus its pill so nothing pops at the edge. */
+  function isDecorOffScreen(d) {
+    var M = 80;
+    if (d.w && d.h) {
+      if (d.x + d.w < cam.x - M || d.x > cam.x + W + M) return true;
+      if (d.y + d.h < cam.y - M || d.y > cam.y + H + M) return true;
+      return false;
+    }
+    if (d.x < cam.x - M || d.x > cam.x + W + M) return true;
+    if (d.y < cam.y - M || d.y > cam.y + H + M) return true;
+    return false;
+  }
+
   function drawDecor(ctx) {
     for (var i = 0; i < decor.length; i++) {
       var d = decor[i];
+      /* Cull decor that is off the camera. This is not just an optimisation:
+         decor is drawn inside the camera translate, so anything outside the
+         viewport still costs a fillText, and text measured there is what made
+         the text audit report overflow for world labels the player cannot even
+         see. Culling keeps the audit honest and saves the draw. */
+      if (isDecorOffScreen(d)) continue;
       switch (d.type) {
         case "rug":
           ctx.save();
@@ -488,16 +510,24 @@ G.world = (function () {
         G.render.character(ctx, o.x, o.y, "hero", o.facing, o.walkPhase);
       } else {
         G.render.character(ctx, o.x, o.y, o.palette, o.facing, o.walkPhase);
-        // name tag
+        // Name tag. Clamped inside the viewport: an NPC standing near the right
+        // or left edge used to have their name cut in half, which reads as a
+        // rendering bug rather than a stylistic choice. Clamping the centre also
+        // keeps the pill behind it aligned with the text.
         ctx.save();
         ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(0,0,0,.5)";
         var nw = ctx.measureText(o.name).width;
-        G.util.roundRect(ctx, o.x - nw / 2 - 5, o.y - 52, nw + 10, 14, 7);
+        var halfPill = nw / 2 + 5;
+        var scr = G.world && G.world.toScreen ? G.world.toScreen(o.x, o.y).x : o.x;
+        var labelX = o.x;
+        if (scr - halfPill < 4) labelX += (4 - (scr - halfPill));
+        else if (scr + halfPill > 960 - 4) labelX -= ((scr + halfPill) - (960 - 4));
+        G.util.roundRect(ctx, labelX - halfPill, o.y - 52, nw + 10, 14, 7);
         ctx.fill();
         ctx.fillStyle = "rgba(244,236,224,.85)";
-        ctx.fillText(o.name, o.x, o.y - 42);
+        ctx.fillText(o.name, labelX, o.y - 42);
         ctx.restore();
       }
     }

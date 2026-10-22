@@ -145,6 +145,10 @@ G.quest = (function () {
       fill: "rgba(68,58,47,.85)", stroke: "rgba(232,196,128,.45)", radius: 9
     });
 
+    // textAlign must be set explicitly: it is not part of save()/restore() state
+    // that we can assume, and whichever surface drew last may have left it
+    // centered. Inheriting "center" here pushed the title half off the left edge.
+    ctx.textAlign = "left";
     ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "rgba(217,164,76,.85)";
     ctx.textBaseline = "top";
@@ -256,6 +260,9 @@ G.quest = (function () {
     if (!show) return;
     var x = 20, y = 92, w = 200;
     ctx.save();
+    // Same inherited-textAlign trap as drawObjective: without this the label can
+    // be centred on x+2 and hang off the left edge.
+    ctx.textAlign = "left";
     ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "rgba(244,236,224,.5)";
     ctx.fillText("Timur: " + G.state.trustLabel(), x + 2, y - 4);
