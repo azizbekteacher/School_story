@@ -104,6 +104,21 @@ G.input = (function () {
     return false;
   }
 
+  /* Virtual keys: the touch layer drives the game through these, so a thumb
+     and a keyboard produce byte-identical input state. `pressVirtual` does the
+     edge-detection a real keydown does (only the first press in a frame counts
+     as "pressed"), and the per-frame clear in endFrame() finishes the job. */
+  function pressVirtual(k) {
+    if (!k) return;
+    if (!down[k]) pressed[k] = true;
+    down[k] = true;
+  }
+
+  function releaseVirtual(k) {
+    if (!k) return;
+    down[k] = false;
+  }
+
   function anyPressed(keys) {
     for (var i = 0; i < keys.length; i++) {
       if (pressed[keys[i]]) { pressed[keys[i]] = false; return keys[i]; }
@@ -130,6 +145,8 @@ G.input = (function () {
     isDown: isDown,
     wasPressed: wasPressed,
     consume: consume,
+    pressVirtual: pressVirtual,
+    releaseVirtual: releaseVirtual,
     anyPressed: anyPressed,
     numberPressed: numberPressed,
     endFrame: endFrame,

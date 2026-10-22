@@ -155,6 +155,122 @@ G.dialogue = (function () {
     return node.text || "";
   }
 
+  /* ---- copy-to-clipboard -------------------------------------------------
+     Every message gets a copy control, because players screenshot dialogue to
+     share a line or to keep it as a note. `navigator.clipboard` is unavailable
+     or rejected on `file://` in some browsers, so there is a hidden-textarea +
+     execCommand fallback. Both are async-ish; the UI only needs to know whether
+     the attempt was accepted, so the visible state is set optimistically and
+     corrected on failure. */
+  var COPY_W = 62, COPY_H = 22;
+  var copyRect = null;          // screen rect of the copy control this frame
+  var copyFlash = 0;            // >0 shows "Nusxalandi"
+  var copyFlashOk = true;
+
+  function copyTextFor() {
+    if (!node) return "";
+    if (node.type === "say") {
+      var t = nodeText();
+      return node.speaker ? node.speaker + ": " + t : t;
+    }
+    if (node.type === "choice" || node.type === "multi") {
+      // Copy the prompt plus the options as they are shown, locked ones marked
+      // so a pasted copy is still honest about what was reachable.
+      var out = [];
+      if (node.prompt) out.push(node.prompt);
+      var opts = availableOptions();
+      for (var i = 0; i < opts.length; i++) {
+        var mark = opts[i].locked ? " [yopiq]" : "";
+        out.push((i + 1) + ". " + (opts[i].locked ? (opts[i].o.lockedText || opts[i].o.text) : opts[i].o.text) + mark);
+      }
+      return out.join("\n");
+    }
+    return nodeText();
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function doCopy() {
+    var text = copyTextFor();
+    if (!text) return;
+    copyFlash = 1.6;
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyFlashOk = true;
+      }, function () {
+        copyFlashOk = legacyCopy(text);
+      });
+    } else {
+      copyFlashOk = legacyCopy(text);
+    }
+    if (copyFlashOk) G.audio.select(); else G.audio.bad();
+    if (G.quest && G.quest.showToast) {
+      G.quest.showToast(copyFlashOk ? "Nusxalandi" : "Nusxalab bo'lmadi", copyFlashOk ? "good" : "bad");
+    }
+  }
+
+  /* The control is a small rect in the message panel's top-right. Returns the
+     rect so draw and hit-test agree on one value. */
+  function messagePanel() {
+    var px = 96, pw = W - 192;
+    var ph = 176;
+    var py = H - ph - 44;
+    return { x: px, y: py, w: pw, h: ph };
+  }
+
+  function copyButtonRect() {
+    if (node && (node.type === "choice" || node.type === "multi")) {
+      // these panels have their prompt box at the top of the screen, so the
+      // control sits inside that box's top-right corner
+      var qy = 60, qh = 74;
+      return { x: 96 + (W - 192) - COPY_W - 12, y: qy + qh - COPY_H - 8, w: COPY_W, h: COPY_H };
+    }
+    var p = messagePanel();
+    return { x: p.x + p.w - COPY_W - 14, y: p.y - 11, w: COPY_W, h: COPY_H };
+  }
+
+  function hitCopy() {
+    var r = copyButtonRect();
+    return G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, r);
+  }
+
+  function drawCopyButton(ctx) {
+    var r = copyButtonRect();
+    copyRect = r;
+    var hover = G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, r);
+    var copied = copyFlash > 0;
+
+    ctx.save();
+    G.util.roundRect(ctx, r.x, r.y, r.w, r.h, 6);
+    ctx.fillStyle = copied ? "rgba(127,184,107,.30)"
+                  : (hover ? "rgba(255,255,255,.13)" : "rgba(38,29,22,.92)");
+    ctx.fill();
+    ctx.strokeStyle = copied ? "rgba(127,184,107,.85)"
+                    : (hover ? "rgba(240,230,216,.6)" : "rgba(240,230,216,.32)");
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = copied ? "#d9f0cf" : "rgba(244,236,224,.9)";
+    ctx.fillText(copied ? "Nusxalandi" : "Nusxa", r.x + r.w / 2, r.y + r.h / 2 + 0.5);
+    ctx.restore();
+  }
+
   function advance() {
     if (!node) return;
     if (node.type === "say") {
@@ -259,6 +375,7 @@ G.dialogue = (function () {
   function update(dt) {
     if (!active || !node) return;
     visT += dt;
+    if (copyFlash > 0) copyFlash = Math.max(0, copyFlash - dt);
 
     if (node.type === "say" || node.type === "end") {
       var full = nodeText();
@@ -287,6 +404,19 @@ G.dialogue = (function () {
 
   function handleInput() {
     if (!active || !node) return;
+
+    // Copy control wins over advance: clicking it must never advance the beat,
+    // or the player loses the line they were trying to copy.
+    if (G.input.mouse.clicked && hitCopy()) {
+      doCopy();
+      return;
+    }
+    // C is the keyboard equivalent, for players who never reach for the mouse.
+    if (G.input.wasPressed("c")) {
+      G.input.consume("c");
+      doCopy();
+      return;
+    }
 
     if (node.type === "say") {
       if (G.input.wasPressed("space") || G.input.wasPressed("enter") || G.input.wasPressed("e") ||
@@ -444,6 +574,7 @@ G.dialogue = (function () {
     }
 
     G.render.hint(ctx, "SPACE / E — davom", visT);
+    drawCopyButton(ctx);
   }
 
   function drawChoice(ctx) {
@@ -527,6 +658,7 @@ G.dialogue = (function () {
     }
 
     G.render.hint(ctx, "1-" + count + " yoki ↑↓ + ENTER — tanlash", visT);
+    drawCopyButton(ctx);
   }
 
   function drawMulti(ctx) {
@@ -595,6 +727,7 @@ G.dialogue = (function () {
     }
 
     G.render.hint(ctx, "1-" + count + " — savol berish · ENTER — davom", visT);
+    drawCopyButton(ctx);
   }
 
   return {
@@ -616,6 +749,11 @@ G.dialogue = (function () {
       if (node.type === "multi") { pickMulti(i); return true; }
       return false;
     },
-    debugFinishMulti: function () { finishMulti(); }
+    debugFinishMulti: function () { finishMulti(); },
+    // Test hooks for the copy control: what text would be copied for the node
+    // currently on screen, and the button's hit rect.
+    __copyForTest: function () { return copyTextFor(); },
+    __copyRectForTest: function () { return copyButtonRect(); },
+    __doCopyForTest: function () { doCopy(); }
   };
 })();

@@ -1,0 +1,131 @@
+/* Touch controls overlay.
+   Hidden by default — G.touch.install() adds `.on` to #touch-ui only on a
+   coarse-pointer device, so a desktop player never sees a d-pad. Everything
+   here is positioned in percentages of #stage so it scales with the canvas
+   letterbox instead of drifting away from it.
+
+   The d-pad sits bottom-left and the action buttons bottom-right, which is
+   where thumbs actually rest when a phone is held in landscape. Both are
+   inset far enough to clear the canvas's own bottom HUD strip. */
+
+#touch-ui {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;            /* above the CRT vignette (10), below the rotate hint (50) */
+  pointer-events: none;   /* only the buttons themselves take touches */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#touch-ui.on { display: block; }
+
+#touch-ui .tbtn {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-weight: 700;
+  color: rgba(244, 236, 224, .92);
+  background: rgba(38, 32, 26, .58);
+  border: 1.5px solid rgba(232, 196, 128, .42);
+  border-radius: 12px;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .35);
+  transition: background .08s linear, transform .08s linear, border-color .08s linear;
+  touch-action: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+/* Pressed and keyboard-focused states must be obvious: on a phone the finger
+   covers the button, so the feedback has to read from the edges. */
+#touch-ui .tbtn.is-down,
+#touch-ui .tbtn:active {
+  background: rgba(217, 164, 76, .42);
+  border-color: rgba(232, 196, 128, .95);
+  transform: scale(.94);
+}
+
+#touch-ui .tbtn:focus-visible {
+  outline: 2px solid rgba(232, 196, 128, .9);
+  outline-offset: 2px;
+}
+
+/* ---- d-pad: bottom left, a 3x3 grid with the centre left empty ---- */
+#dpad {
+  position: absolute;
+  left: 1.6%;
+  bottom: 3.2%;
+  width: 21%;
+  max-width: 168px;
+  min-width: 108px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4%;
+  pointer-events: none;
+}
+
+#dpad .tbtn { font-size: clamp(11px, 2.4vw, 19px); }
+
+#dpad .tbtn[data-key="arrowup"]    { grid-area: 1 / 2 / 2 / 3; }
+#dpad .tbtn[data-key="arrowleft"]  { grid-area: 2 / 1 / 3 / 2; }
+#dpad .tbtn[data-key="arrowdown"]  { grid-area: 3 / 2 / 4 / 3; }
+#dpad .tbtn[data-key="arrowright"] { grid-area: 2 / 3 / 3 / 4; }
+
+/* ---- action buttons: bottom right ---- */
+#tacts {
+  position: absolute;
+  right: 1.6%;
+  bottom: 3.2%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+#tacts .tbtn { pointer-events: auto; }
+
+#tacts .tbtn.wide {
+  width: clamp(58px, 11vw, 92px);
+  height: clamp(38px, 7vw, 52px);
+  font-size: clamp(9px, 1.6vw, 12px);
+  letter-spacing: .06em;
+  border-radius: 12px;
+}
+
+#tacts .tbtn.big {
+  width: clamp(64px, 12vw, 104px);
+  height: clamp(64px, 12vw, 104px);
+  border-radius: 50%;
+  font-size: clamp(15px, 3vw, 24px);
+  background: rgba(217, 164, 76, .20);
+  border-color: rgba(232, 196, 128, .62);
+}
+
+/* On a very short landscape viewport the buttons would eat the play area, so
+   shrink them and pull them into the corners. */
+@media (max-height: 430px) {
+  #dpad  { width: 17%; bottom: 2%; left: 1.2%; }
+  #tacts { bottom: 2%; right: 1.2%; gap: 7px; }
+}
+
+/* Portrait phones get the rotate hint from style.css instead of a squeezed
+   d-pad; hiding the controls stops them overlapping that hint. */
+@media (max-aspect-ratio: 3/4) {
+  #touch-ui.on { display: none; }
+}
+
+/* If a device has a fine pointer and plenty of room, there is no reason to
+   cover the canvas with thumbs — keep the d-pad for coarse pointers only. */
+@media (pointer: fine) and (min-width: 900px) {
+  #touch-ui { display: none !important; }
+}

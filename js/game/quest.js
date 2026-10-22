@@ -166,14 +166,33 @@ G.quest = (function () {
     ctx.restore();
   }
 
+  /* The minimap sits in the top-right corner, as tight to the edge as the
+     drop shadow allows, so it covers as little of the world as possible. It
+     also fades out when the hero walks underneath it, because a HUD that hides
+     the player is worse than no HUD. */
+  var MAP_W = 144, MAP_H = 113;
+  var MAP_MARGIN = 8;
+
+  function minimapRect() {
+    return { x: W - MAP_W - MAP_MARGIN, y: MAP_MARGIN + 2, w: MAP_W, h: MAP_H };
+  }
+
   function drawMinimap(ctx) {
     var map = G.map;
-    var mw = 150, mh = 118;
-    var x = W - mw - 20, y = 18;
+    var r = minimapRect();
+    var mw = r.w, mh = r.h;
+    var x = r.x, y = r.y;
     var scaleX = mw / (map.COLS * map.T);
     var scaleY = mh / (map.ROWS * map.T);
 
+    // fade when the player is behind the panel
+    var p0 = G.world.player;
+    var s0 = G.world.toScreen(p0.x, p0.y);
+    var behind = s0.x > x - 60 && s0.y < y + mh + 60;
+    var vis = behind ? 0.42 : 1;
+
     ctx.save();
+    ctx.globalAlpha = vis;
     G.render.panel(ctx, x, y, mw, mh, {
       fill: "rgba(68,58,47,.88)", stroke: "rgba(232,196,128,.45)", radius: 9
     });
@@ -212,16 +231,22 @@ G.quest = (function () {
     ctx.stroke();
     ctx.restore();
 
-    // zone name under the map
-    ctx.save();
+    // zone name, as a footer strip inside the panel so it never spills into
+    // the play area below the minimap
     var names = {
       street: "Ko'cha", gate: "Darvaza", yard: "Hovli", shop: "Do'kon",
       corridor: "Koridor", staffroom: "O'qituvchilar xonasi", classroom: "5-B sinf"
     };
-    ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "rgba(244,236,224,.5)";
-    ctx.textAlign = "center";
-    ctx.fillText(names[G.world.playerZone()] || "", x + mw / 2, y + mh + 14);
+    var zoneName = names[G.world.playerZone()] || "";
+    if (zoneName) {
+      ctx.fillStyle = "rgba(38,32,26,.72)";
+      ctx.fillRect(x + 4, y + mh - 19, mw - 8, 15);
+      ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(244,236,224,.66)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(zoneName, x + mw / 2, y + mh - 11);
+    }
     ctx.restore();
   }
 
@@ -282,6 +307,9 @@ G.quest = (function () {
     showToast: showToast,
     startScene: startScene,
     reset: reset,
+    // test hook: the minimap panel rect, so a probe can assert it stays clear of
+    // the playable centre without re-deriving the geometry
+    minimapRect: minimapRect,
     getPromptNpc: function () { return promptNpc; },
     // test hook: clear the trigger cooldown so a teleport can fire a trigger immediately
     clearCooldown: function () { zoneCooldown = 0; }

@@ -10,8 +10,16 @@ G.debrief = (function () {
   var PAGES = ["Natija", "Tanlovlar", "G'oyalar", "Qiyinchiliklar"];
   var cached = null;
 
+  /* Two modes share one panel:
+     - "final"    the end-of-mission debrief. Terminal; no close control.
+     - "overview" the same four tabs, opened at any time from MENYU. Read-only
+                  and closeable, so a player can check what a chapter has taught
+                  so far without ending the mission. */
+  var mode = "final";
+
   function show() {
     visible = true;
+    mode = "final";
     t = 0;
     page = 0;
     scroll = 0;
@@ -21,12 +29,28 @@ G.debrief = (function () {
     if (G.world) G.world.freeze(true);
   }
 
+  /* Open the same panel as a read-only overview, mid-mission. */
+  function openOverview() {
+    if (visible) return false;
+    visible = true;
+    mode = "overview";
+    t = 0;
+    page = 0;
+    scroll = 0;
+    cached = buildSummary();
+    G.audio.select();
+    if (G.world) G.world.freeze(true);
+    return true;
+  }
+
   function hide() {
     visible = false;
     if (G.world) G.world.freeze(false);
   }
 
   function isVisible() { return visible; }
+  function isOverview() { return visible && mode === "overview"; }
+  function isFinal() { return visible && mode === "final"; }
 
   function buildSummary() {
     var learning = (G.data && G.data.learning) || {};
@@ -125,6 +149,22 @@ G.debrief = (function () {
     if (!visible) return;
     t += dt;
 
+    // overview is dismissible; the final debrief is terminal
+    if (mode === "overview") {
+      if (G.input.wasPressed("escape") || G.input.wasPressed("tab")) {
+        G.input.consume("escape"); G.input.consume("tab");
+        hide();
+        G.audio.tick();
+        return;
+      }
+      if (closeRect && G.input.mouse.clicked &&
+          G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, closeRect)) {
+        hide();
+        G.audio.tick();
+        return;
+      }
+    }
+
     if (G.input.wasPressed("arrowright")) {
       G.input.consume("arrowright");
       page = (page + 1) % PAGES.length; scroll = 0; G.audio.tick();
@@ -151,6 +191,7 @@ G.debrief = (function () {
   }
 
   var tabRects = [];
+  var closeRect = null;
 
   function draw(ctx) {
     if (!visible || !cached) return;
@@ -171,14 +212,18 @@ G.debrief = (function () {
       inner: true
     });
 
-    // header
+    // header — the title differs by mode, because the final debrief is a
+    // verdict and the overview is a look back at what has been taught so far.
+    var storyTitle = (G.data && G.data.story && G.data.story.title) || "Tahlil";
     ctx.save();
     ctx.font = "bold 26px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "#f2dfae";
-    ctx.fillText("Birinchi kun — tahlil", px + 34, py + 48);
+    ctx.fillText(mode === "final" ? "Birinchi kun — tahlil" : storyTitle + " — tahlil", px + 34, py + 48);
     ctx.font = "13px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "rgba(244,236,224,.5)";
-    ctx.fillText("Unreasonable Hospitality tamoyillari bo'yicha", px + 34, py + 70);
+    ctx.fillText(mode === "final"
+      ? "Unreasonable Hospitality tamoyillari bo'yicha"
+      : "Hozirgacha o'rganilgan tamoyillar", px + 34, py + 70);
     ctx.restore();
 
     // score badge
@@ -206,6 +251,30 @@ G.debrief = (function () {
     ctx.restore();
     G.render.progressBar(ctx, px + pw - 200, py + 70, 166, 9, G.state.trust / 10,
       G.state.trust >= 7 ? "#7fb86b" : (G.state.trust >= 4 ? "#d9a44c" : "#c4553f"));
+
+    // close affordance — overview only. The final debrief has no way out by
+    // design, so this must never appear in "final" mode.
+    closeRect = null;
+    if (mode === "overview") {
+      var cr = { x: px + pw - 46, y: py + 24, w: 22, h: 22 };
+      closeRect = cr;
+      ctx.save();
+      G.util.roundRect(ctx, cr.x, cr.y, cr.w, cr.h, 6);
+      ctx.fillStyle = "rgba(255,255,255,.05)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,236,224,.35)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(244,236,224,.75)";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(cr.x + 7, cr.y + 7);
+      ctx.lineTo(cr.x + cr.w - 7, cr.y + cr.h - 7);
+      ctx.moveTo(cr.x + cr.w - 7, cr.y + 7);
+      ctx.lineTo(cr.x + 7, cr.y + cr.h - 7);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // tabs
     tabRects = [];
@@ -496,6 +565,9 @@ G.debrief = (function () {
     update: update,
     draw: draw,
     isVisible: isVisible,
+    openOverview: openOverview,
+    isOverview: isOverview,
+    isFinal: isFinal,
     // test/introspection hooks
     getSummary: function () { return cached || buildSummary(); },
     getPage: function () { return page; },

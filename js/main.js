@@ -26,6 +26,12 @@ window.G = window.G || {};
     ctx.imageSmoothingEnabled = true;
 
     G.input.init(canvas);
+    // Touch controls are opt-in by device: on a desktop this is a no-op and the
+    // d-pad stays hidden. Guarded because touch.js must never be able to stop
+    // the game booting.
+    if (G.touch && G.touch.install) {
+      try { G.touch.install(); } catch (e) { console.warn("touch install failed", e); }
+    }
     G.map.build();
 
     if (G.data && G.data.story) {
@@ -214,8 +220,25 @@ window.G = window.G || {};
           else G.quest.showToast(r.reason || "Fayl tanlanmadi", "info");
         });
       }
-      // pause? (no pause screen; esc handled elsewhere)
-      if (G.debrief.isVisible()) { state = "debrief"; }
+      // the mission ended: hand over to the debrief and stop simulating the
+      // world this frame, so the player cannot take one more step into it
+      if (G.debrief.isVisible()) { state = "debrief"; return; }
+
+      // MENYU opens the read-only overview. Checked before the overlays so the
+      // button is never stolen by a dialogue hit-test, and guarded by
+      // menuButtonVisible() so it cannot fire while something modal owns input.
+      if (menuButtonVisible() && G.input.mouse.clicked && menuButtonHit()) {
+        if (G.debrief.openOverview()) {
+          G.audio.select();
+          return;
+        }
+      }
+      // Ctrl/Cmd-free keyboard route: Escape also opens it while free-roaming,
+      // since nothing else claims Escape in the play state.
+      if (menuButtonVisible() && G.input.wasPressed("escape")) {
+        G.input.consume("escape");
+        if (G.debrief.openOverview()) { G.audio.select(); return; }
+      }
 
       if (G.notebook.isOpen()) {
         G.notebook.update(dt);
@@ -250,6 +273,10 @@ window.G = window.G || {};
 
     if (state === "debrief") {
       G.debrief.update(dt);
+      // The overview is closeable, so leaving it must return to play. The final
+      // debrief is terminal — it has no close control, so this can never fire
+      // for it.
+      if (!G.debrief.isVisible()) { state = "play"; }
       return;
     }
   }
@@ -274,6 +301,7 @@ window.G = window.G || {};
       // objective tick overlay when free
       if (!G.dialogue.isActive() && !G.minigameHost.isActive() &&
           !G.notebook.isOpen() && !G.debrief.isVisible()) {
+        drawMenuButton();
         drawControlHint();
       }
     }
@@ -295,8 +323,44 @@ window.G = window.G || {};
     ctx.font = "11px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "#f4ece0";
     ctx.textAlign = "right";
-    ctx.fillText("WASD — yurish · E — gaplash · TAB — daftar · M — saqlash", W - 20, H - 16);
+    ctx.fillText("WASD — yurish · E — gaplash · TAB — daftar · C — nusxa · M — saqlash", W - 20, H - 16);
     ctx.restore();
+  }
+
+  /* ---- MENYU -------------------------------------------------------------
+     A button in the top-left, under the objective and trust column, that opens
+     the debrief panel in read-only "overview" mode at any point in a chapter —
+     the same four tabs the player sees at the end, without ending the mission.
+     From there the coaching menu (Xulosalar / Qaydlar / …) is one tap away. */
+  var MENU_BTN = { x: 20, y: 116, w: 96, h: 30 };
+
+  function menuButtonVisible() {
+    return state === "play" && !G.dialogue.isActive() && !G.minigameHost.isActive() &&
+      !G.notebook.isOpen() && !G.debrief.isVisible();
+  }
+
+  function drawMenuButton() {
+    if (!menuButtonVisible()) return;
+    var b = MENU_BTN;
+    var hover = G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
+    ctx.save();
+    G.util.roundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.fillStyle = hover ? "rgba(217,164,76,.28)" : "rgba(68,58,47,.85)";
+    ctx.fill();
+    ctx.strokeStyle = hover ? "rgba(232,196,128,.9)" : "rgba(232,196,128,.45)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.font = "bold 12px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "#f2dfae";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("MENYU", b.x + b.w / 2, b.y + b.h / 2 + 0.5);
+    ctx.restore();
+  }
+
+  function menuButtonHit() {
+    var b = MENU_BTN;
+    return G.util.pointInRect(G.input.mouse.x, G.input.mouse.y, b);
   }
 
   function drawTitle() {
