@@ -14,6 +14,36 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈08:00 (Tashkent) — the wave: chapter 2 recreated on separate worktree and deployed on localhost:3005
+
+> re-create chapter 2. you don't have to change everything, keep good parts
+> do it on seperate worktree and deploy localhost 3005
+
+**What it establishes, and these are the binding parts:**
+
+- **Worktree isolation**: Developed on a separate git worktree `_ch2-worktree` on branch `recreate-chapter-2` and deployed to `http://localhost:3005/`.
+- **Preserved the good parts**: Kept the 5-B classroom setting, the 45-minute lesson arc, the 6 core NPCs (Zarina, Dilnoza, Jasur, Bekzod, Nafisa, Timur), the 8 principles (`C2-001`..`C2-008`), the minigames (`firstNinety`, `complimentRun`), the "Bekzod usuli" gesture, and the 95/5 closing at the door.
+- **Biographic & Notion truth restored**:
+  - Replaced fabricated madrasa details ("twenty pupils, on the floor, one book") with authentic Kukaldash madrasa truth: *adab* — understanding that knowledge is a duty to serve and honor others' dignity, not an excuse for arrogance.
+  - Staged the three mathematical themes from Notion `1-dars`: asking students first ("O'zlaridan so'rash"), Pavel Durov & algorithms/logical architecture, and Al-Khwarizmi/Islamic scientific heritage.
+- **The information economy is now active, not decorative**:
+  - Replaced write-only intel with real gated choices using `{ requires: { intel: ... }, lockedText: "..." }`.
+  - Seven real gates wired: `intel_bekzod_way` (gates "Bekzod usuli" and tomorrow's challenge), `intel_jasur_joke` (gates the partnership agreement), `intel_jasur_leader` (gates Jasur's ownership of the rule), `intel_timur_bread` (gates the morning bread breakfast invite), `intel_dilnoza_explains` (gates recognizing her teaching instinct), `intel_zarina_leader` (gates acknowledging her room leadership), and `intel_nafisa_quiet` (gates the quiet 1-on-1 validation).
+- **The third minigame (`registerRun`) is wired into the story**:
+  - `names_start` now actively calls `registerRun` for the interactive name-learning and detail-matching exercise.
+  - The pre-fill logic in `registerRun` was corrected to check the actual story intel IDs (`intel_zarina_leader`, `intel_bekzod_way`, `intel_jasur_joke`, `intel_dilnoza_explains`, `intel_timur_bread`).
+- **Defects removed**:
+  - Fixed Cyrillic `aytaсан` -> `aytasan`.
+  - Fixed dead `P.MUTUAL ? P.MUTUAL : P.NOTICE` reference -> `P.NOTICE`.
+- **What it produced**:
+  - Cleaned & enhanced `js/data/chapter2.js` (220 nodes, 42 options, 3 minigames).
+  - Cleaned & enhanced `js/data/chapter2-learning.js` (49 choice notes, accurate Kukaldash madrasa intel).
+  - Enhanced `js/data/minigames/chapter2.js` (working multi-intel pre-fill for `registerRun`).
+  - Active HTTP server on `http://localhost:3005` serving `_ch2-worktree`.
+  - Both `tools/validate-chapter2.js` (0 errors, 0 warnings) and `tools/test-chapters.js` (full end-to-end play of both chapters) 100% green.
+
+---
+
 ## 2026-10-22, ≈07:42 (Tashkent) — the wave: mining his Notion, measured rather than assumed
 
 > Produce the definitive recipe for how a future agent mines the user's Notion
