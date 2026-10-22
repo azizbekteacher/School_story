@@ -339,9 +339,16 @@ Choices and their gates:
   player must see the door they failed to open. That is the lesson.
 - Beyond documented usage, `dialogue.js` also understands
   `requires: { intelAny: [], flag, notFlag, chosen, notChosen, trustMin }` and
-  `multi`'s `nextAfter: { intel, true, false }` / `nextFallback`. Chapter 2 uses
-  `requires.flag`. These work; prefer the documented `requires.intel` shape for
-  gates at the lesson.
+  `multi`'s `nextAfter: { intel, true, false }` / `nextFallback`. These work;
+  prefer the documented `requires.intel` shape for gates at the lesson.
+  **Chapter 1 uses all three of its real gates** (`intel_football`,
+  `intel_sick`, `intel_quiet` in `timur_start/tm_q`).
+  **Chapter 2 contains zero `requires` and zero `lockedText` of any kind** — an
+  earlier version of this line claimed chapter 2 used `requires.flag`, which was
+  never true. The consequence is worth understanding before copying it: every one
+  of chapter 2's 17 intel ids is write-only, so its information economy is
+  decorative. Do not inherit that — a chapter without a single gate cannot teach
+  the player that what they learned mattered.
 
 **`multi` is the "ask several questions" node** — a question menu with a budget:
 
@@ -414,7 +421,13 @@ reference. Never `Object.assign` two chapters' teaching content together.
 Chapter 1's six principle ids are fixed: `I-001` service vs hospitality,
 `I-002` enlightened hospitality, `I-028` present vs attentive, `I-043`
 thoughtfulness not luxury, `I-044` systemise what is unique, `F-013` the
-execution engine. Chapter 2 uses its own namespace (`C2-001`…`C2-006`).
+execution engine. Chapter 2 uses its own namespace — **`C2-001`…`C2-008`, eight
+principles, not six.** The validator allows **6–10** (`validate-chapter2.js:411`
+is `if (principleIds.length < 6 || principleIds.length > 10)`); ids must be
+contiguous from `C2-001` (`:417`). An earlier version of this line said
+`C2-001`…`C2-006`, which would have led a new chapter to ship too few principles
+— and "felt like really short / don't restrain from teaching many principles" is
+one of the user's explicit complaints.
 
 ### 6.3 NPC entry
 
@@ -856,6 +869,25 @@ From `PROMPT-LIBRARY.md`; these are not renegotiated per task.
    And a probe that dispatches a synthetic `keydown` without a matching `keyup`
    fires exactly once and then goes dead, because `input.js` sets `pressed[k]`
    only when `!down[k]`.
+10. **Ask him before you invent him.** Any agent creating a chapter **may ask the
+    user personal questions** — he said so directly. The question bank, the
+    asking discipline and the fallback are in
+    [PERSONALISATION-GUIDE.md](PERSONALISATION-GUIDE.md) §7. Two rules make it
+    safe: **ask before plotting** (a biography answer can change the chapter's
+    whole shape, and finding it after encoding costs a rewrite), and **if you
+    cannot ask, do not guess** — build on verified material only and leave a
+    `QUESTIONS.md`. This constraint exists because the opposite already happened:
+    a chapter put a specific, invented memory in the hero's own mouth, promoted it
+    into the notebook as self-knowledge, and it passed every gate. **A verified
+    fact is not a licence to invent its details.**
+11. **Chapter 2 is a work in progress, not a template.** The user has said *"I
+    didn't like chapter 2 yet"* — while also saying *"there are some good parts in
+    it."* Mine it for mechanisms that demonstrably work (the brief format, the
+    one-fact-three-treatments technique, the foldback shape, the ending image) and
+    for its **data format**, which the validators define. Do **not** copy its
+    editorial choices — plot, length, idea density, use of his biography — as if
+    they were approved. He has said chapter 2 can be **recreated with these
+    guides**, which is the real quality bar for the guide set.
 
 ## 13. Working discipline
 
@@ -1019,13 +1051,27 @@ both deployments serve.
 |---|---|
 | the binding contract | [SPEC.md](SPEC.md), [WAVE-A-BRIEF.md](WAVE-A-BRIEF.md) |
 | the user's intent and priorities | [PROMPT-LIBRARY.md](PROMPT-LIBRARY.md) |
-| how to add a chapter | [CHAPTER-CREATION-GUIDE.md](CHAPTER-CREATION-GUIDE.md) |
+| **how to add a chapter (start here)** | [CHAPTER-CREATION-GUIDE.md](CHAPTER-CREATION-GUIDE.md) |
+| **what the chapter is about / plot craft** | [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) |
+| **the user's own requirements, verbatim** | [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) §0.1 |
+| **making a chapter about *him*** | [PERSONALISATION-GUIDE.md](PERSONALISATION-GUIDE.md) |
+| **designing a minigame** | [MINIGAME-DESIGN-GUIDE.md](MINIGAME-DESIGN-GUIDE.md) |
+| **mining his Notion for material** | [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) |
+| what the book actually says | [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md) |
 | the real data shapes | `node tools/show-contract.js` |
 | how a scene is interpreted | `js/game/dialogue.js` |
 | how effects land | `js/game/dialogue.js` `applyEffects()` |
-| what a correct chapter looks like | `tools/validate-chapter2.js`, `js/data/chapter2.js` |
+| what a correct chapter's *data* looks like | `tools/validate-chapter2.js` — **copy it** |
+| chapter 2's content | `js/data/chapter2.js` — **work in progress, a source of parts, not a standard** |
 | the player-facing story | [README.md](README.md) |
 | deploy / live URL | [DEPLOY.md](DEPLOY.md) |
 | the Coolify mirror, its credentials' locations, and its gotchas | §14 above |
+
+**Which of these is authoritative when they disagree:** `node tools/show-contract.js`
+and the validators beat every prose file, including this one. Prose describes
+intent; the data and the gates describe reality. Three separate false claims
+about chapter 2 lived in this file and the guides for weeks (zero `requires`
+gates, `C2-001`…`C2-006`, "chapter 2 uses `requires.flag`") and every one of them
+was only caught by running the code.
 
 *"Service is black and white. Hospitality is colour."*

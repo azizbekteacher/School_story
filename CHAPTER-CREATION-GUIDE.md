@@ -1,14 +1,59 @@
 # Building chapter N+1
 
-A repeatable recipe for adding a chapter to School_story. Read
-[AGENTS.md](AGENTS.md) first — it explains the machine. This file is the
-procedure.
+A repeatable recipe for adding a chapter to School_story.
 
-The reference implementation is **chapter 2**, and the best model for a new
-chapter is to read `js/data/chapter2.js` + `js/data/chapter2-learning.js` +
-`tools/validate-chapter2.js` side by side with this guide. Chapter 1 is
-**not** a model for a new chapter: it predates the chapter registry, its NPCs do
-not key beats, and it must not be touched.
+Read in this order:
+
+1. [AGENTS.md](AGENTS.md) — the machine, the rules, the constraints.
+2. [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) — **what the chapter is
+   about.** Do not skip this. Plot is the centre of the work.
+3. **This file** — how to research it, then how to build it.
+
+The reference implementation is **chapter 2** — but read the next paragraph
+before you treat it as a template.
+
+> **Chapter 2 is a work in progress, not a finished model.** The user's words on
+> an earlier version were *"[chapter 2] I didn't like it, like, at all"*, and on
+> the current one: *"I didn't like chapter 2 yet"* — but also *"there are some
+> good parts in it."* A rewrite wave has since addressed a lot of the original
+> complaints.
+>
+> So use chapter 2 as a **source of parts, not a standard to copy whole.** It is
+> the only complete chapter on the current engine, and several of its pieces are
+> genuinely good and worth reusing (see the list below). But do **not** deep
+> reverse-engineer its overall shape and assume that shape is right: the plot,
+> the density of ideas, and the use of his biography are still being judged.
+>
+> **The practical rule:** mine chapter 2 for *mechanisms that demonstrably work*,
+> and treat its *editorial choices* — length, pacing, how many ideas, which
+> biography facts — as open questions that
+> [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) and
+> [PERSONALISATION-GUIDE.md](PERSONALISATION-GUIDE.md) exist to answer. The user
+> has said chapter 2 can be recreated with this guide set, which is the real test
+> of whether the guides are good enough.
+
+**Good parts of chapter 2 worth reusing, with confidence:**
+
+| part | why it works |
+|---|---|
+| the three-line `brief` | situation · asset · trap, in 3 lines. A model for any chapter's opening card. |
+| the **bean-count of the temptation** — the credential is named as easy *and* its refusal costs something | the choice is real because the easy path is genuinely attractive |
+| **one fact, three treatments** (perform / withhold / redirect) | a reusable technique for turning biography into choice — see `PERSONALISATION-GUIDE.md` §3 |
+| **six parallel `wob_*` scenes** for the final choice | gives the player a *specific person* instead of an abstraction, without six plots |
+| the **ending image** ("Bekzod usuli" in chalk) | a small, specific, retellable residue rather than a speech |
+| **foldback structure** — short terminating scenes, one mission exit | the only branching shape that fits the budget |
+| `complimentRun` | his own sentence ("I could give active students compliments") turned into a mechanic |
+
+Treat as settled, and copy without hesitation:
+
+- the **data contract** — verified by `tools/validate-chapter2.js` and
+  `tools/show-contract.js`, not by prose
+- the **engine patterns** — effects, beats, intel, minigames, the registry
+- the **gates** — §13
+
+Chapter 1 is **not** a model for a new chapter either: it predates the chapter
+registry, its NPCs do not key beats, and it must not be touched. It is a fixed
+point, not a template.
 
 ---
 
@@ -23,9 +68,8 @@ What makes a chapter work in this game, concretely:
   chapter is two chapters.
 - **A real teaching arc, not a topic list.** The player should be able to make a
   *wrong* choice that feels reasonable, feel its cost later, and see that cost
-  named in the debrief. The three temptations must be genuinely tempting:
-  Chapter 2's Jasur is not a villain, he is a boy testing whether the new teacher
-  is real.
+  named in the debrief. The temptation must be genuinely tempting: chapter 2's
+  Jasur is not a villain, he is a boy testing whether the new teacher is real.
 - **A minigame that *demonstrates* rather than quizzes.** The gift shop is not
   "pick the right present" — it is a test of whether you listened earlier, and
   the expensive item *cannot win*. Knowing the boy loves football literally makes
@@ -39,100 +83,405 @@ What makes a chapter work in this game, concretely:
   This is a standing user constraint, stated more than once.
 
 Length reference: chapter 1 is ~1,020 lines of story (10 scenes, 119 nodes);
-chapter 2 is ~1,600 lines (17 scenes, 191 nodes, 41 options). Both learning
-files are 700–730 lines. Do not ship a 200-line chapter — it will read as a
+chapter 2 is ~1,642 lines (21 scenes, 203 nodes, 36 options). Both learning files
+are 758–831 lines. **Do not ship a 200-line chapter** — it will read as a
 placeholder.
 
 ---
 
-## 1. Step 1 — decide the question, and six principles
+## 1. The pipeline in one page
 
-Write these down before any code.
+**A chapter is made in seven stages, and three of them are research.** Nearly
+every bad chapter is bad because stages 0–3 were skipped and coding started at 5.
 
-**The question.** One sentence. The whole chapter must be usable as an answer to
-it. Chapter 2's: *fourteen strangers are choosing who you are, and you are
-choosing who they are — what do you do in the first ninety seconds?*
+```
+Stage 0   BRIEF        what is this chapter for, for him, this week
+Stage 1   HARVEST      Notion · the book · his biography · the web
+Stage 2   DISTILL      the main points → 6-10 principles → the single question
+Stage 3   PLOT         the story, its spine, its choices   → PLOT-CREATION-GUIDE.md
+Stage 4   INTERACTIONS beats · what is a decision vs a line · minigames
+Stage 5   ENCODE       story data · learning object · minigames · registry
+Stage 6   VERIFY       gates · playtest · the honesty pass
+```
 
-**Six principles, in your own namespace.** The brief says "5–6"; the shipped
-chapter validator is stricter — `validate-chapter2.js` hard-fails on
-`principleIds.length !== 6`, so in practice a new chapter copied from it needs
-**exactly six**, ids in order. Give them a namespace that cannot collide with
-another chapter's: chapter 2 uses `C2-001` … `C2-006`. Do not reuse chapter 1's
-`I-*`/`F-*` ids, and do not extend chapter 1's learning object.
+Stages 0–4 produce **documents, not code.** Write them down. A chapter that
+exists only in a chat history is lost; a chapter that exists as five short
+markdown files can be reviewed, argued with, and handed to another agent.
 
-Map each principle to a beat. Chapter 2's six principles are one per part of the
-lesson:
+The expected artifacts, in a scratch directory (not committed):
 
-| id | principle | beat it lives in |
+| file | produced at | contains |
 |---|---|---|
-| `C2-001` | the room decides who you are before you speak | `before`, `door` |
-| `C2-002` | attention is mutual — children audit it | `open` |
-| `C2-003` | a name is the smallest unit of hospitality | `names` |
-| `C2-004` | expectations are service; the reason is colour | `rules`, `task` |
-| `C2-005` | the moment it breaks is the impression | `wobble` |
-| `C2-006` | the last minute is what they carry out | `exit` |
+| `BRIEF.md` | stage 0 | the situation this week, the question, what must not be said |
+| `RESEARCH.md` | stage 1 | the mined material, with provenance |
+| `POINTS.md` | stage 2 | the main points, the principles, the question |
+| `PLOT.md` | stage 3 | the spine, the beats, the choice list |
+| `INTERACTIONS.md` | stage 4 | per-beat: what the player does, minigame specs |
+| `js/data/chapterN.js` | stage 5 | the chapter |
+| `js/data/chapterN-learning.js` | stage 5 | the teaching payload |
 
-Each principle object needs, and the validator enforces:
-`id, name, source, gist, atSulton` (≥2 concrete Sulton examples), `spotIt`
-(≥2 ways to notice it in a real day).
-
-**Write `gist` as an argument, not a definition.** Chapter 2's `C2-001` gist is
-three sentences about how a first impression is a verdict the room reaches, not
-a speech you give. That is the register.
+**A stage is not done until its artifact exists.** This is the single most useful
+discipline in this document.
 
 ---
 
-## 2. Step 2 — define the beats
+## 2. Stage 0 — the brief
 
-**A beat is a progress marker.** It is a plain string that drives three things at
-once:
+Before research, write one page about **why this chapter, now.**
 
-1. **the objective** shown in the HUD (`objectives[beat]`),
-2. **NPC routing** (`npc.entry[beat]` picks which scene that NPC speaks),
-3. **triggers** (a trigger fires when the player enters its zone while its beat
-   is current).
+The trap is building a chapter about an abstract principle. Chapter 2 was written
+after the user said the previous attempt *"didn't use almost none of the ideas
+from Unreasonable Hospitality"* and *"didn't take into account my personal
+info"*. The correction was not "add quotes" — it was **find the real dilemma he
+is actually living and answer it with the book.**
 
-A beat is reached by an **effect** `{ beat: "id" }` inside a scene — never by
-position. That is the single most important mechanical rule in the story layer.
+The brief answers:
 
-Design rules for the beat list:
+1. **What is his actual situation this week?** Read the most recent entries in
+   the Notion **Logs** page (`3fe2d18e-3d59-8043-a847-ff7e329d51d9`). What is he
+   dealing with — a class, a colleague, a manager, a pilot programme?
+2. **What does he want to be true that is not?** The gap is the chapter.
+3. **Which parts of the book speak to it?** Not "which are my favourite" —
+   which actually answer this situation.
+4. **What is the chapter's question, in one sentence?** Try to write it now. If
+   you cannot, the brief is not ready.
+5. **What must NOT be said?** Things that would be cheap, wrong, or hurt a real
+   colleague. Write them down so a later stage cannot drift into them.
 
-- **7–10 beats.** `validate-chapter2.js` fails outside that range.
-- **The first key of `objectives` is the chapter's first beat.** `main.js` starts
-  the chapter on `Object.keys(objectives)[0]`, so insertion order is load-bearing.
-  Chapter 2's first key is `before`, and the chapter spawn is in the corridor.
-- **Every beat must be set by some `{ beat }` effect**, and every `{ beat }`
-  effect must name an existing objective key. The validator checks both
-  directions — a beat that is declared but never reached fails, and a typo in a
-  beat effect fails.
-- **The last beat should be terminal** (`done`), set in the same effect list as
-  `{ endMission: true }`.
-- **Objective strings must fit one HUD line, ~34 characters.** The validator
-  warns above 34; longer strings clip.
+Keep the brief short. It is a compass, not a plan.
 
-Chapter 2's beats, for shape:
+### Sizing the brief
 
-```
-before → door → open → names → rules → task → wobble → exit → done
-```
-
-Each one is a *change in the situation*, not a new location. `wobble` is the
-mid-lesson moment where the plan breaks and you choose whose desk to walk to.
-That is a beat because it is a decision point, not because the player moved.
-
-**Write the beat table down before the script.** For each beat: what the player
-is doing, what changes, which NPC or trigger delivers it, and which principle it
-teaches.
+| good brief | bad brief |
+|---|---|
+| 1 page, 5 short answers | 5 pages of theme notes |
+| names a specific real situation | "about hospitality in schools" |
+| states the question | states a topic |
+| names what to avoid | no boundaries |
 
 ---
 
-## 3. Step 3 — write the story object
+## 3. Stage 1 — harvest: where the material comes from
+
+Four sources, in this priority order. You do not need all four for every chapter,
+but **you must consciously choose** which you are using.
+
+| # | source | what it gives | where |
+|---|---|---|---|
+| 1 | **The user's Notion** | his own words, his real situation, the book's highlights, AI extractions | `api.notion.com`, see [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) |
+| 2 | **The book, verified** | what Guidara actually says vs what the internet claims | [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md) |
+| 3 | **His biography** | the details that make choices personal | `Umumiy ma'lumotlar` page + this repo's docs |
+| 4 | **The web** | how this is handled in real practice, by named practitioners | `web_search` / `web_fetch` |
+
+### 3.1 Mining Notion
+
+The full procedure, with API calls and worked examples, is in
+[NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md). The short version:
+
+- **Logs** (`3fe2d18e-3d59-8043-a847-ff7e329d51d9`) — his dated reflections.
+  This is the richest source for *his actual situation*. Nested toggles: you must
+  descend two levels (`/v1/blocks/<block_id>/children`).
+- **Book insights** (`4002d18e-3d59-8187-a7bd-c9e21cf223a3`) — **223 highlights,
+  7 notes**, plus nested toggles.
+- **Ai review** (`3ff2d18e-3d59-8054-b6e1-cea7afa470c8`) — batch AI extractions of
+  the book. Fast to scan, but it is a *secondary* source: quote the highlight, not
+  the extraction, when accuracy matters.
+- **Umumiy ma'lumotlar** (`3fe2d18e-3d59-80dd-b180-d14b06eac5fb`) — the
+  biography. Start here.
+
+Rules:
+
+- **Never print the token.** Get it from the skill file at read time; do not
+  paste it into a report, a commit, or a markdown file.
+- Paginate. Every page endpoint takes `page_size=100` and returns `has_more` +
+  `next_cursor`. Most of these pages are >100 blocks.
+- Dump raw responses into a scratch directory. You will re-read them, and Notion
+  rate-limits.
+- Never write to Notion from a chapter task. Read-only.
+
+**A trap:** the AI review pages are *extractions*, not the book. This project has
+already been burned by an agent quoting a plausible line that was an AI
+paraphrase. If a quotation matters, find it in the **highlights** page, and if it
+is not there, [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md)
+is the authority on whether it exists.
+
+### 3.2 The book — verified vs. distillation
+
+Read [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md)
+before you write a single principle. It distinguishes, with citations:
+
+- lines that are **Guidara's own words**
+- lines that are **distillations** of his argument (usable as ideas, not as quotes)
+- things **attributed to the book that are not in it**
+
+Known traps — do not put these in a chapter as quotations:
+
+| claim | status |
+|---|---|
+| "Service is black and white, hospitality is colour" | **a distillation**, not a verified Guidara quotation |
+| "one size fits one" | **could not be verified** — treat as unattributed |
+| "the answer is yes — what is the question?" | **not in this book** |
+| postcard / granola / umbrella as gifts | **not in the book** |
+| birthday cake | appears **only negatively** |
+
+**A shipped example of the trap:** chapter 2's principle `C2-004` is *named*
+"One size fits one", and its `source` correctly points at real chapters
+("Ch. 16 — earning informality; Ch. 3 — enlightened hospitality is not one
+recipe"). The *idea* is sound and sourced; the *phrase* is not a quote. That is
+the right way to handle it — but if you ever print a quotation in a chapter, it
+must be verifiable.
+
+**Chapter 2's eight principles, as a model of sourcing:**
+
+| id | name | what it argues |
+|---|---|---|
+| `C2-001` | The verdict is reached before you speak | the room decides who you are before you act |
+| `C2-002` | A name is the smallest unit of hospitality | the maître d' who confirmed the reservation himself |
+| `C2-003` | Somebody's job is to notice | the Dreamweaver role; the $2 hot dog as a gift |
+| `C2-004` | One size fits one | earning informality; enlightened hospitality is not one recipe |
+| `C2-005` | Specific beats generic | the guest remembers the specific gesture, not the correct one |
+| `C2-006` | The gesture nobody asked for | the hot dog systemised; 95% / 5% |
+| `C2-007` | The last minute is the impression they keep | the closing exchange outweighs the middle |
+| `C2-008` | The enemy is 'reasonable' | competence is not the goal |
+
+Note the shape: each is an **argument**, not a label. "Be thoughtful" is a label.
+"Specific beats generic" is an argument you can disagree with.
+
+### 3.3 His biography
+
+Read [PLOT-CREATION-GUIDE.md §10](PLOT-CREATION-GUIDE.md) for how biography
+becomes plot. For harvesting, the target is a short dossier of **verified** facts
+with provenance, and an explicit UNKNOWN list. Do not invent.
+
+The verified personalisation hooks used by chapter 2:
+
+- **Buxoro viloyat olimpiadasi** — regional olympiad champion, and Buxoro as the
+  strongest maths region. Used as the chapter's *temptation*.
+- **Kukaldash madrasa** — where he studied. Used as the *alternative* source of
+  authority: the teacher who learned, not the teacher who won.
+- **5-B** — the real class.
+- **Abu Bakr** (manager) and **Oqil** (maths colleague) — real people, portrayed
+  with dignity.
+- **The pilot idea** — his own 30-day plan, which the ideas tab can build on.
+
+The chapter-2 `brief` is three lines and encodes the whole personalisation:
+
+```
+5-B. O'n to'rt begona. Qirq besh daqiqa.
+Sizda bitta guvohnoma bor — Buxoro viloyat olimpiadasi.
+Uni ko'rsatish oson. Ishlatmaslik qiyin.
+```
+
+Three lines: the situation, the asset, and the trap. **That is the standard for a
+chapter brief.**
+
+### 3.4 Web research
+
+Research the **real situation**, not the theme. If the chapter is about a new
+teacher's credibility, research what actually happens to new male teachers in
+Central Asian schools; what the literature says about first-impression effects on
+student compliance; what named practitioners actually do about it.
+
+Rules:
+
+- Prefer practitioners and named frameworks over SEO listicles.
+- **Do not import claims you cannot source.** If the web says something
+  surprising, it either gets a citation in the research file or it does not go in
+  the chapter.
+- The teaching content must be **usable on a Monday**. A principle that requires
+  budget, permission, or colleagues' buy-in needs that difficulty named honestly
+  in the `difficulties` tab.
+- Keep a `RESEARCH.md` with links. Another agent must be able to check you.
+
+---
+
+## 4. Stage 2 — distill: material into a teaching payload
+
+This is the hinge. You have material; here you turn it into something that can
+teach. Four outputs.
+
+### 4.1 The single question
+
+One sentence. The whole chapter must be usable as an answer to it. Chapter 2:
+
+> *Fourteen strangers are choosing who you are, and you are choosing who they
+> are — what do you do in the first ninety seconds?*
+
+Test it: can you imagine two defensible answers? If only one answer is
+defensible, it is not a question, it is an instruction.
+
+### 4.2 The principles — 6 to 10, own namespace
+
+The validator's real rule is **6–10 principles**
+(`tools/validate-chapter2.js:411`), ids **contiguous in order**
+(`C2-001`, `C2-002`, …). The old version of this guide claimed "exactly six" —
+that was wrong. Chapter 2 ships **8**.
+
+Each principle needs: `id, name, source, gist, atSulton` (≥2 concrete Sulton
+examples), `spotIt` (≥2 ways to notice it in a real day).
+
+**Use a namespace that cannot collide:** chapter 1 uses `I-*` / `F-*`, chapter 2
+uses `C2-*`. A new chapter gets `C3-*`, and so on.
+
+**Write `gist` as an argument, not a definition.** `C2-001`'s gist is three
+sentences about how a first impression is a verdict the room reaches, not a
+speech you give. That is the register.
+
+**Map each principle to a beat.** Chapter 2, 8 principles across 10 beats:
+
+| id | principle | beats it lives in |
+|---|---|---|
+| `C2-001` | the verdict is reached before you speak | `before`, `door` |
+| `C2-002` | a name is the smallest unit of hospitality | `open`, `names` |
+| `C2-003` | somebody's job is to notice | `names`, `rules` |
+| `C2-004` | one size fits one | `rules`, `task` |
+| `C2-005` | specific beats generic | `task`, `gift` |
+| `C2-006` | the gesture nobody asked for | `gift` |
+| `C2-007` | the last minute is the impression they keep | `exit`, `done` |
+| `C2-008` | the enemy is 'reasonable' | `wobble` |
+
+### 4.3 The main-points table
+
+The bridge from research to plot. One row per point you intend to teach:
+
+| # | main point | from (provenance) | principle | beat | how the player *does* it |
+|---|---|---|---|---|---|
+| 1 | the room judges before you speak | Ch.1 arrival; Logs 2026.10.18 | `C2-001` | `before` | 2-minute window, 2 of 4 questions |
+| 2 | a name is the cheapest luxury | Ch.1 maître d' | `C2-002` | `names` | register minigame pre-fills from intel |
+| … | | | | | |
+
+**A main point with no "how the player does it" cell is not ready.** It is a
+lecture line. Either find the action, or drop the point.
+
+This table is also the debrief's skeleton: `choiceNotes` are rows of it, seen from
+the choice side.
+
+### 4.4 Personalisation — the five levers
+
+Before plotting, decide which levers you are pulling. Full treatment in
+[PLOT-CREATION-GUIDE.md §10](PLOT-CREATION-GUIDE.md).
+
+| # | lever | example from ch2 |
+|---|---|---|
+| 1 | **naming** | 5-B; Buxoro; Abu Bakr; Oqil |
+| 2 | **backstory** | olympiad champion; madrasa student |
+| 3 | **dilemma** | a new teacher's credibility vs. seeing the child |
+| 4 | **principle → his problem** | "specific beats generic" answers his overload-and-scale problem |
+| 5 | **debrief speaks to this week** | the `ideas` tab is doable tomorrow |
+
+Levers 1–2 are cheap; 3–5 are what make it his. **Decide 3–5 explicitly, or the
+chapter will be generic no matter how good the plot is.**
+
+### 4.5 Register check before you plot
+
+You now have principles and points. Read them and ask: *would a real teacher say
+this to another real teacher without embarrassment?* If any line sounds like a
+training deck, fix it now. It is far cheaper than fixing it in 1,600 lines of
+dialogue.
+
+---
+
+## 5. Stage 3 — plot
+
+**Go to [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) and do not come back
+until you have a `PLOT.md`.**
+
+That guide covers the dramatic spine, the seven-move skeleton, choice design
+(foldback, consequence without locks, gated choices), the information economy,
+tension devices, dialogue craft, and the ending. This document will not
+re-teach it — it is the centre of the work and deserves its own file.
+
+What you must bring back from stage 3:
+
+1. **The spine**, six lines (want · inciting · pressure · reversal · choice · residue).
+2. **The beat list**, 7–10 beats, each a *change in the situation*, with the
+   person or trigger that delivers it.
+3. **The choice list**: every choice, what it changes (two things), and its
+   verdict.
+4. **The ending image**, and the debrief's argument.
+5. **The plot readiness checklist**, all yes.
+
+If the plot cannot survive the checklist, do not proceed to encoding. A weak
+spine encoded well is still a weak chapter, and it is much harder to see once it
+is 1,600 lines of data.
+
+---
+
+## 6. Stage 4 — interactions: beats, and what needs a minigame
+
+Before writing data, decide for each beat: **what does the player physically
+do?** There are only four answers, and choosing the wrong one is how chapters
+become passive.
+
+| mode | the player… | use when |
+|---|---|---|
+| **walk + talk** | moves to a person or zone and plays a scene | delivering information, establishing character |
+| **choice** | picks one of 2–4 options that change state | the decision is the teaching moment |
+| **multi** | spends a budget of questions | information has a cost |
+| **minigame** | performs a small scored task | the skill/attention itself must be practised |
+
+### 6.1 The minigame test
+
+> **If the beat would work as a multiple-choice question, it is not a minigame.**
+
+A minigame earns its place only if it makes the player **perform** the thing
+being taught, under a constraint. Examples from the shipped games:
+
+- **gift shop** (ch1): tests whether you listened earlier; the expensive item
+  *cannot* win
+- **firstNinety** (ch2): allocation under a ninety-second budget
+- **complimentRun** (ch2): match the specific thing you noticed to the specific
+  pupil, using intel
+- **ballPlay / travelTalk** (ch1): timing, and route planning
+
+Note what is common: **intel changes how the game plays, not just the text
+around it.** That is the requirement.
+
+> **A warning about copy-pasting from chapter 2.** `js/data/minigames/chapter2.js`
+> registers **three** games, but only **two** are ever referenced by a story node
+> — `registerRun` (~460 lines) is **dead code**. It passes every gate, because
+> nothing checks that a registered game is reachable. See
+> [MINIGAME-DESIGN-GUIDE.md](MINIGAME-DESIGN-GUIDE.md) §2 and §8.7.
+
+**Go deeper:** [MINIGAME-DESIGN-GUIDE.md](MINIGAME-DESIGN-GUIDE.md) is the full
+craft file — the host contract, the six archetypes, the five ways to wire intel
+into a game mechanically, the win/lose contract, readability rules, and the
+anti-patterns.
+
+### 6.2 The interaction contract
+
+Beats and minigames are fully specified later (§ "Step 6 — a minigame"). Before
+you encode, the `INTERACTIONS.md` must state per beat:
+
+- the mode (walk+talk / choice / multi / minigame)
+- who or what delivers it (NPC with a beat-keyed `entry`, or a trigger zone)
+- for a choice: the options and **what each changes** (two things)
+- for a multi: the budget and what each question grants
+- for a minigame: the input, the win condition, the lose condition, the intel
+  that alters it, and the *proportional* consequence
+
+### 6.3 Every beat needs a door
+
+This is a mechanical trap worth stating early: **a beat is only advanceable
+through two things — an NPC whose `entry` is keyed to that beat, or a trigger
+zone for that beat.** A beat with neither cannot be reached, and the generic
+playtest walker will stall on it.
+
+Chapter 1's map between beats and NPCs lives in the *playtest harness*, not in
+the data — that is why chapter 1 is not a model. **For a new chapter, key your
+NPCs and give every remaining beat a trigger.**
+
+---
+
+---
+
+## 7. Write the story object
 
 Put the chapter in **new files**: `js/data/chapter3.js` and
 `js/data/chapter3-learning.js`. Never edit `story.js` or `learning.js` to add a
 chapter.
 
-### 3.1 Skeleton
+### 7.1 Skeleton
 
 ```js
 window.G = window.G || {};
@@ -173,7 +522,7 @@ scenes` all exist, that `title`/`subtitle` are non-empty strings, that `brief` i
 an array of exactly 3 non-empty lines, that `startZone` has an anchor list and is
 a real map zone, and that `startAnchor` is within that zone's anchors (`0..5`).
 
-### 3.2 NPCs and triggers
+### 7.2 NPCs and triggers
 
 ```js
 npcs: [
@@ -226,7 +575,7 @@ what makes the generic playtest walker able to play your chapter — it looks fo
 an NPC whose `entry` has the current beat as a key. Chapter 1 only keys `default`
 and consequently cannot be walked generically.
 
-### 3.3 Nodes
+### 7.3 Nodes
 
 A scene is `{ start: "firstNodeId", nodes: { id: { …node } } }`. All
 `next`/`onWin`/`onLose`/option `next` targets must exist **in the same scene** —
@@ -368,7 +717,7 @@ dr_end: {
 }
 ```
 
-### 3.4 Effects — the whole DSL
+### 7.4 Effects — the whole DSL
 
 | Effect | What it does |
 |---|---|
@@ -397,7 +746,7 @@ effect list if you care about the stamp.
 
 ---
 
-## 4. Step 4 — place NPCs and triggers on existing anchors
+## 8. Place NPCs and triggers on existing anchors
 
 Nothing new is needed in `js/world/map.js`. The anchor zones each have six
 positions. Pick existing ones:
@@ -430,7 +779,7 @@ If you truly need a new zone, that is engine work in `js/world/map.js` plus
 
 ---
 
-## 5. Step 5 — write the learning object
+## 9. Write the learning object
 
 New file `js/data/chapter3-learning.js`:
 
@@ -448,9 +797,14 @@ G.data.chapter3Learning = {
 };
 ```
 
-**`principles` — an object keyed by id.** Six entries, ids `C3-001` … `C3-006`,
-each with `id, name, source, gist, atSulton[≥2], spotIt[≥2]`. Ids must match
-their keys and be in order.
+**`principles` — an object keyed by id.** **6 to 10 entries.** The real rule
+(`tools/validate-chapter2.js:411`) is
+`if (principleIds.length < 6 || principleIds.length > 10) err(...)`. An older
+version of this guide claimed "exactly six" — that was wrong; chapter 2 ships
+**8**. Ids `C3-001` … `C3-00N`, **contiguous and in order** (the validator checks
+`pid !== want`), each with `id, name, source, gist, atSulton[≥2], spotIt[≥2]`.
+Ids must match their keys. Use your own namespace (`C3-*`) — never chapter 1's
+`I-*`/`F-*`, never chapter 2's `C2-*`.
 
 **`choiceNotes` — one for every choice id, with no orphans.** This is the strictest
 rule in the whole pipeline:
@@ -540,7 +894,7 @@ nothing is a principle you did not write.
 
 ---
 
-## 6. Step 6 — a minigame, if the chapter needs one
+## 10. A minigame, if the chapter needs one
 
 Only if the chapter has a moment that must be *performed*, not chosen. Put it in
 `js/data/minigames/chapter3.js`.
@@ -644,7 +998,7 @@ Host contract, the parts that bite:
 
 ---
 
-## 7. Step 7 — register the chapter
+## 11. Register the chapter
 
 Four edits, in this order.
 
@@ -717,7 +1071,9 @@ Keep every check. They are all there because something failed without them.
 
 ---
 
-## 8. The full checklist
+---
+
+## 12. The full checklist
 
 Everything the validators will catch. Get it right the first time.
 
@@ -804,11 +1160,9 @@ Everything the validators will catch. Get it right the first time.
 
 ---
 
-## 9. The gate commands
+## 13. The gate commands
 
-Run **in this order**, from the repository root. All of these are green on the
-current two-chapter tree except `audit-text.js`, which has a known pre-existing
-regression documented at the end of this section.
+Run **in this order**, from the repository root.
 
 ```powershell
 node tools/validate.js
@@ -826,82 +1180,114 @@ PASSED — 0 errors, 0 warnings
 node tools/validate-chapter2.js
 ```
 
-This is the **model** for your own chapter validator. Expected: the info lines
-including `mission ends at: exit_start/ex_end`, `minigame choice ids: …`, then a
-counts block (`scenes 17 / nodes 191 / options 41 / principles 6 / choiceNotes
-45 / ideas 8 / difficulties 7 / archetypes 3 / npcs 6 / triggers 2`) ending in
-`PASSED — 0 errors, 0 warnings`.
+This is the **model** for your own chapter validator — copy it and change the
+data references. Verified current output on the shipped chapter 2:
 
-```powershell
-node tools/playtest.js
-node tools/playtest.js --strategy=worst
-node tools/playtest.js --chapter=ch2
+```
+scenes 21 / nodes 203 / options 36 / principles 8 / choiceNotes 43
+ideas 8 / difficulties 7 / archetypes 3 / npcs 6 / triggers 6
 ```
 
-Each should report `beats reached: done`, `debrief shown: true` and
-`PASSED — mission completed to debrief with no exceptions`. A new chapter needs
-`--chapter=chN` and its **NPCs must key beats** or the generic walker stalls.
+ending in `PASSED — 0 errors, 0 warnings`.
+
+> **Do not trust a counts block you have not just run.** The numbers above were
+> measured, not recalled. An earlier version of this guide quoted
+> `17 / 191 / 41 / 6 / 45 / 2` — every one of those was wrong, and a reader
+> comparing their real output to a stale baseline would think their chapter was
+> broken (or, worse, force it to match).
 
 ```powershell
-node tools/test-chapters.js
+node tools/playtest.js                       # ch1 best path
+node tools/playtest.js --strategy=worst      # ch1 worst path
+node tools/playtest.js --chapter=ch2         # ch2 reaches the debrief
+node tools/verify-file-protocol.js           # THE contract gate: file:// boot + full mission
+node tools/test-memory.js                    # save -> reload -> resume
+node tools/test-chapters.js                  # both chapters play, switch, resume
+node tools/probe-hero.js 1                   # hero on screen, ch1
+node tools/probe-hero.js 2                   # hero on screen, ch2
+node tools/audit-text.js                     # real canvas text metrics
+node tools/probe-mobile.js                   # CDP touch emulation
+node tools/probe-chapter-menu.js             # XULOSALAR / MENYU split
+node tools/show-contract.js                  # prints the live data shapes
 ```
 
-Expected: `CHAPTER TEST PASSED — both chapters play, switch and resume correctly`.
-This one asserts there are exactly two chapters, so it will go red when you add a
-third — that is the harness needing an update, not a content bug.
+### 13.1 What each gate cannot see
 
-```powershell
-node tools/verify-file-protocol.js
+This is the part that matters, and it is the part no gate prints. These are
+**classes of bug that pass every existing check**, all found by inspection in the
+shipped chapter 2:
+
+| blind spot | what ships broken | how to catch it |
+|---|---|---|
+| **a terminal path that never sets a beat** | the HUD freezes on the previous objective and the next trigger never fires. The player is stuck with no error. | walk every path; assert each terminal ends on `exit` or `done`. See §13.2 |
+| **an intel id that nothing gates on** | the player gathers a fact that changes nothing — the whole information economy is decorative | assert every granted `intel` appears in at least one `requires` |
+| **a flag that is written and never read** | dead state; the scene that should branch on it silently does not | assert every `flag` in effects is read by a `requires` or a minigame |
+| **a registered minigame no node references** | ~460 lines of unreachable code that passes validation | assert every registered game id appears in a `game:` node |
+| **the coldest archetype band being unreachable** | the worst possible run is awarded a middle label, so the debrief flatters a bad lesson | compute the worst reachable average; assert it lands in the lowest band |
+| **an important choice that records no `choiceId`** | the biggest decision never reaches the debrief's `Tanlovlar` tab and has no `choiceNotes` entry | assert every branch-defining node emits a `choice` |
+
+**Chapter 2 fails four of these six.** They are all inherited silently by any
+chapter copied from it, which is the strongest argument for writing the checks
+before writing the data.
+
+### 13.2 The two checks worth writing first
+
+They are cheap and they catch the two defects that actually hurt a player.
+
+**Check 1 — every terminal path sets a beat.** Walk the node graph from each
+scene's `start`, carrying the current beat through each node's effects; at every
+terminal (`type: "end"`, or a node with no outgoing edge) assert the carried beat
+is the chapter's final beat.
+
+```js
+// sketch — adapt to your validator's sandbox
+function terminalBeats(story) {
+  const out = [];
+  (function walk(sceneId, nodeId, beat, seen) {
+    const sc = story.scenes[sceneId];
+    const n = sc && sc.nodes[nodeId];
+    if (!n || seen.has(nodeId)) return;
+    let b = beat;
+    for (const e of n.effects || []) if (e.beat) b = e.beat;
+    const nexts = [];
+    if (n.next) nexts.push(n.next);
+    for (const o of n.options || []) if (o.next) nexts.push(o.next);
+    if (n.onWin) nexts.push(n.onWin);
+    if (n.onLose) nexts.push(n.onLose);
+    if (n.type === "end" || nexts.length === 0) { out.push({ nodeId, beat: b }); return; }
+    for (const nx of nexts) walk(sceneId, nx, b, new Set(seen).add(nodeId));
+  })(sceneId, story.scenes[sceneId].start, null, new Set());
+  return out;
+}
 ```
 
-The contract gate. Expected:
-`FILE:// VERIFICATION PASSED — boots and completes the mission by double-click`.
+Then fail if any terminal beat is not the final beat. **Note:** a terminal that
+is not itself the mission end may legitimately hand off to another scene; in that
+case assert the handoff exists rather than asserting `exit`.
 
-```powershell
-node tools/test-memory.js
-```
+**Check 2 — every intel id gates something.** Collect every `intel` granted by
+any effect, option, or minigame result; collect every id named in any
+`requires.intel` / `requires.intelAny`; assert the first set is a subset of the
+second.
 
-Expected: `MEMORY TEST PASSED — save/resume works across a reload`.
+The existing `validate-chapter2.js` **already knows about this one and warns
+without failing.** It prints `intel granted but not gating an option` for 14 of
+chapter 2's 17 ids and still exits 0. A warning that always fires is a warning
+nobody reads — in your validator, make it an error.
 
-```powershell
-node tools/probe-hero.js 1
-node tools/probe-hero.js 2
-```
+### 13.3 When a gate goes red
 
-Expected: `PASS  the hero is on screen (screen 336,302 of 960x600)` and
-`(screen 480,301 …)`. For a new chapter: `node tools/probe-hero.js 3`.
+A red gate is information, not an obstacle. Do not loosen the threshold — that
+has been done once in this project's history and it hid a real text-overflow
+regression for weeks. Report the verbatim output.
 
-Then, if you touched anything visual:
-
-```powershell
-node tools/audit-text.js
-node tools/analyze-facing.js
-```
-
-`analyze-facing.js` prints
-`✓ PASS — the nose points the way the hero is walking, in both directions`
-followed by `✓ side views are exact mirror images`.
-
-**`audit-text.js` is already red — do not treat its failure as yours.**
-As of commit `93b36c8` it reports `issues found: 60 overflow, 0 runtime` and exits
-1, on every run. Two world-space strings are the whole cause: the shop sign
-`"SARDOR SAVDO"` (drawn at screen x 1120, edge 1166) and Nodira's floating name
-label (screen x 944, edge 969 — about 9px past the 960px viewport). Both are
-drawn under the camera translate, and the audit judges the *translated* x.
-`93b36c8` moved the shop and gate east and brought them into the audit's view;
-`6bdf96d` passes this audit cleanly, and HEAD with only `js/world/map.js` reverted
-to `6bdf96d` passes again. That is a pre-existing regression owned by whoever owns
-`js/world/map.js` — not something a new chapter caused. Report it, don't chase it,
-and never "fix" it by loosening the audit's thresholds.
-
-**A red gate means your change is wrong.** Fix the change; never edit the test to
-match. If a gate was already red before you started, say so in your report with
-the verbatim output rather than silently working around it — `audit-text.js` is
-the one gate in that state right now.
+The exception is a *stale assertion*, like `test-chapters.js` hard-coding exactly
+two chapters. When you add a chapter that assertion must be updated, and you say
+so in your report.
 
 ---
 
-## 10. Common mistakes
+## 14. Common mistakes
 
 Written as "if you see X, check Y".
 
@@ -1004,7 +1390,9 @@ the Lead, do not run `git add`/`commit`/`push` at all.
 
 ---
 
-## 11. Worked mini-example — a hypothetical chapter 3
+---
+
+## 15. Worked mini-example — a hypothetical chapter 3
 
 Not a full script; enough to make the shape concrete and to show every seam.
 
@@ -1148,6 +1536,212 @@ G.data.chapter3Learning = {
 Then the checklist in §8, then the gates in §9 — and `test-chapters.js` will need
 its "exactly two chapters" assertion updated, which is expected work for adding a
 chapter, not a regression.
+
+---
+
+*"Service is black and white. Hospitality is colour."*
+
+---
+
+## 16. Working with subagents
+
+A chapter is a large, parallelisable piece of work, and the project has already
+been burned by concurrent edits. This section is the division of labour, the
+ordering, and the merge discipline.
+
+### 16.1 The roles
+
+Nine roles. Not every chapter needs all nine, but every chapter needs the
+research ones done before the writing ones.
+
+| role | does | produces | writes |
+|---|---|---|---|
+| **brief** | stage 0: the situation this week, the question, what to avoid | `BRIEF.md` | nothing in `js/**` |
+| **harvester** | mines Notion (Logs, Book insights, Ai review) | `RESEARCH-notion.md` | nothing in `js/**` |
+| **biographer** | verified dossier + personalisation brief | `RESEARCH-who.md` | nothing in `js/**` |
+| **situation-researcher** | web research on the real dilemma | `RESEARCH-context.md` | nothing in `js/**` |
+| **distiller** | main points, 6–10 principles, the question | `POINTS.md` | nothing in `js/**` |
+| **plotter** | **the plot** — spine, beats, choices, ending | `PLOT.md` | nothing in `js/**` |
+| **interaction-designer** | per-beat mode, minigame specs | `INTERACTIONS.md` | nothing in `js/**` |
+| **encoder** | story data, learning object, minigames, registry | the chapter | `js/data/chapterN*.js` |
+| **verifier** | gates, read-through, honesty pass | a report | nothing |
+
+### 16.2 The ordering rule
+
+**Research strictly precedes writing. Plot strictly precedes encoding.**
+
+```
+BRIEF ─┬─ harvest ─┐
+       ├─ bio ─────┼─ DISTILL ─ PLOT ─ INTERACTIONS ─ ENCODE ─ VERIFY
+       └─ context ─┘
+```
+
+The three research agents can run **in parallel** — they touch different
+sources and write different files. Everything after `DISTILL` is sequential.
+
+Why the ordering is not negotiable: the single most expensive failure in this
+project's history was writing 1,600 lines of chapter data around a weak idea and
+then having to rewrite all of it. Encoding is the *expensive* stage. Change your
+mind before it, not after.
+
+### 16.3 Write scopes
+
+**One writer per file. No exceptions.** Assign scopes in the task board before
+work starts:
+
+| scope | owner |
+|---|---|
+| `_research/**` (or the scratch dir) | each research agent, one subdirectory or one file each |
+| `PLOT.md` | plotter |
+| `POINTS.md` | distiller |
+| `INTERACTIONS.md` | interaction-designer |
+| `js/data/chapterN.js` | encoder |
+| `js/data/chapterN-learning.js` | encoder |
+| `js/data/minigames/chapterN.js` | encoder |
+| `js/data/chapters.js` | **Lead** (registry line only) |
+| `index.html` | **Lead** |
+| `js/main.js` | **Lead** |
+| `tools/validate-chapterN.js` | verifier |
+| **all git operations** | **Lead** |
+
+Research agents must never touch `js/**`. Encoders must never invent content
+that is not in `PLOT.md` / `INTERACTIONS.md` — if the plot does not say what a
+scene does, the encoder stops and reports, rather than improvising.
+
+### 16.4 Never `git add -A`
+
+This has actually caused a bug in this repo, twice. In-flight changes from other
+agents got swept into unrelated commits, deleting files nobody intended to
+delete. Stage explicit paths, review `git diff --cached`, then commit. If you are
+not the Lead, do not run `git add` / `commit` / `push` at all.
+
+### 16.5 The verifier must not be the encoder
+
+This is not a formality. **Every vacuous-test bug in this repository was found by
+someone other than the person who wrote the thing being tested:**
+
+- `probe-distances.js` had never called `map.build()`, so its tile grid was empty
+  and every walkability assertion passed for months. The probe was green while
+  testing nothing. A second agent reading it caught it.
+- Three NPC anchors were standing on `DESK` tiles — one of them a shipped
+  chapter-1 bug (Oqil on the teacher's desk) — invisible until the tile grid was
+  actually populated.
+- A canvas menu's buttons were dead while looking perfect: keyboard branching
+  returned before the pointer hit-test. The author could not see it because they
+  only tested with the keyboard.
+
+The encoder cannot see their own blind spots, because their mental model is what
+produced the code. **Assign the verification to a different agent**, and tell it
+to try to break the thing rather than confirm it.
+
+### 16.6 The human gate before encoding
+
+The plot is the cheapest place to change your mind and the most expensive place
+to be wrong. **Show the human `PLOT.md` before anyone writes data.** One page, the
+spine, the beats, the choice list. If the plot is wrong, this costs a
+conversation; if it is wrong after encoding, it costs a rewrite.
+
+The project's own history supports this: the chapter-2 corrections the user gave
+(*"it also felt like really short — don't restrain from teaching many
+principles"*, *"didn't take into account my personal info"*) were **plot and
+content** corrections. No amount of good code fixes a plot that is not his.
+
+### 16.7 A worked task board
+
+```
+# tasks are created first, unowned, then claimed
+
+1. [brief]        Write BRIEF.md                          (no deps)
+2. [harvest]      Mine Notion -> RESEARCH-notion.md       (no deps)
+3. [bio]          Verified dossier -> RESEARCH-who.md     (no deps)
+4. [context]      Web research -> RESEARCH-context.md     (no deps)
+5. [distill]      POINTS.md                               (blocked by 1,2,3,4)
+6. [plot]         PLOT.md                                 (blocked by 5)
+7. [interactions] INTERACTIONS.md                         (blocked by 6)
+8. [encode]       chapter data files                      (blocked by 7)
+9. [verify]       gates + read-through                    (blocked by 8)
+10. [docs]        update PROMPT-LIBRARY.md + this guide   (blocked by 9)
+```
+
+Rules of thumb:
+
+- **research agents are launched together**, in one message, so they overlap.
+- **the plotter is one agent, not three.** A plot written by committee reads
+  like one.
+- **the encoder is one agent per file**, and may be several agents if the files
+  are disjoint — but the story file and its learning file are tightly coupled and
+  should be one owner.
+- **the verifier runs last and is never the encoder.**
+
+### 16.8 What to tell a subagent
+
+A subagent starts with no context. A brief that works has:
+
+1. **the exact files to read first** (paths, not descriptions)
+2. **the deliverable path and shape** (a file, with the section list)
+3. **what it must not do** (touch `js/**`, invent facts, print the token)
+4. **the evidence standard** (cite the block/page; mark UNKNOWN rather than guess)
+5. **what to report back** (the few findings the Lead needs, not a transcript)
+
+A brief that says "research hospitality and write a chapter" produces confident
+garbage. The five-line structure above produces something checkable.
+
+---
+
+---
+
+## 17. Where to look first
+
+| you want… | read |
+|---|---|
+| the machine, the rules, the constraints | [AGENTS.md](AGENTS.md) |
+| **what the chapter is about** | [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) |
+| **his own requirements, verbatim** | [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) §0.1 |
+| **how to make it *his*** | [PERSONALISATION-GUIDE.md](PERSONALISATION-GUIDE.md) |
+| **how to design a minigame** | [MINIGAME-DESIGN-GUIDE.md](MINIGAME-DESIGN-GUIDE.md) |
+| **how to mine his Notion** | [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) |
+| what the book actually says | [UNREASONABLE-HOSPITALITY-RESEARCH.md](UNREASONABLE-HOSPITALITY-RESEARCH.md) |
+| what the user asked for, over time | [PROMPT-LIBRARY.md](PROMPT-LIBRARY.md) |
+| chapter 2 — format reference, **work in progress** | `js/data/chapter2.js` |
+| chapter 2's teaching payload | `js/data/chapter2-learning.js` |
+| the validator to copy | `tools/validate-chapter2.js` |
+| chapter 2's minigames (**`registerRun` is dead code**) | `js/data/minigames/chapter2.js` |
+| the real data shapes | `node tools/show-contract.js` |
+| how a scene is interpreted | `js/game/dialogue.js` (`applyEffects`, `conditionMet`) |
+| how the debrief scores | `js/game/debrief.js`, `js/game/state.js` (`addNote`) |
+
+### The guide set, and what each one owns
+
+Five documents. They overlap deliberately at the seams, but each has one job:
+
+| file | owns |
+|---|---|
+| [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) | **what happens and why it matters** — spine, skeleton, choice design, intel economy, tension, dialogue craft, ending, anti-patterns. Plus his verbatim criteria in §0.1. |
+| [PERSONALISATION-GUIDE.md](PERSONALISATION-GUIDE.md) | **making it about one man** — verified dossier, five levers, the "one fact, three treatments" technique, hard rules, the brief template, UNKNOWNs. |
+| [MINIGAME-DESIGN-GUIDE.md](MINIGAME-DESIGN-GUIDE.md) | **interactions** — host contract, six archetypes, the five ways to wire intel mechanically, win/lose contract, readability, anti-patterns. |
+| [NOTION-CHAPTER-MINING.md](NOTION-CHAPTER-MINING.md) | **stage-1 research** — page IDs, the mining procedure, insight→beat filter, the AI-extraction trap, citation discipline. |
+| **this file** | **the pipeline and the encoding** — stages 0–6, the data contract, the gates, subagent orchestration. |
+
+### The one-paragraph version
+
+Write a one-page brief about the situation this week. Mine Notion and the
+verified book research for material, and check his biography. Distil it into one
+question and 6–10 principles written as arguments. **Then write the plot —
+using [PLOT-CREATION-GUIDE.md](PLOT-CREATION-GUIDE.md) — and get it approved
+before writing any data.** Decide what the player physically does in each beat
+and whether any of them earns a minigame. Only then encode the story object, the
+learning object, the minigames, and the registry line. Run the gates, and have
+someone who is not the author try to break it.
+
+### The three things most likely to go wrong
+
+1. **Skipping the plot.** Encoding is the expensive stage; changing your mind
+   there costs a rewrite. Everything before it is cheap.
+2. **A green test that tests nothing.** This repo has had two probes pass for
+   months while asserting nothing (`probe-distances.js` never called
+   `map.build()`). When a gate passes first time, check it can fail.
+3. **A chapter that would fit any teacher.** If nothing in it is *his*, the plot
+   is not finished no matter how competent it is.
 
 ---
 

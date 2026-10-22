@@ -14,6 +14,166 @@ Never put credentials, tokens or workspace secrets in this file.
 
 ---
 
+## 2026-10-22, ≈07:20 (Tashkent) — the wave: a guide set for building chapters, and the rule that we may ask him
+
+> After you are done and pushed / Create a super "Chapter creation guide", I mean,
+> plan updating it / When creating chapters, different subagents might:
+> - personalize the story to me
+> - deeply look at AI insights or bookmarks page in Notion
+> - surf the web on best advices on this particular situation
+> - gather main points to build the plot around
+> - create interesting plot (this itself needs its "Plot creation guide", its own
+>   research - bcs its the center of the chapter)
+> - create mini games, interactions
+> / Use multiple agents in this planning
+
+Follow-ups, verbatim, in order:
+
+> right, keep that in mind when creating next chapters. Work on the creation guide
+
+> After you are done and pushed / answer this question: Where can I see the
+> currently available project instructions / code, non code etc? Like all the
+> different md files
+
+> after you are done, you can use new system to recreate chapter 2
+
+> its not necessarily rejected, just don't look at it deeply yet. there are some
+> good parts in it
+
+> don't reverse engineer chapters deeply, I didn't like chapter 2 yet
+
+> also, the personalizing or any other agent can ask me personal questions before
+> creating the chapter
+
+**What it establishes.** This is the wave where the *process* of making a chapter
+became a written, delegated, multi-agent pipeline — because the user named the
+jobs himself and asked for them to be distributed across agents. Five binding
+decisions came out of it, and the last two only arrived because I guessed wrong
+and he corrected me.
+
+1. **Plot is the centre, and it needs its own guide.** His parenthetical is the
+   specification: *"this itself needs its 'Plot creation guide', its own research
+   - bcs its the center of the chapter."* So plot is not a stage of the build; it
+   is the thing everything else serves. `PLOT-CREATION-GUIDE.md` exists because he
+   said so in the middle of a request about something else.
+2. **The guide must be a *system*, not one document.** He listed six different
+   agent jobs, three of which are research. That maps to: research → distill →
+   plot → interactions → encode → verify, with a companion file per specialism.
+3. **Multiple agents are expected, and they need coordination rules.** Hence the
+   subagent section: nine roles, an ordering rule, disjoint write scopes, and
+   "verifier is never the encoder". The failure mode this guards against already
+   happened in this wave — four of five delegated agents stalled for twelve
+   minutes and produced nothing.
+4. **Chapter 2 is NOT the reference implementation.** This is the correction that
+   mattered most. I had built both guides treating chapter 2 as the exemplar and
+   started fixing its defects. He stopped me twice: *"don't reverse engineer
+   chapters deeply, I didn't like chapter 2 yet"* and *"its not necessarily
+   rejected, just don't look at it deeply yet. there are some good parts in it."*
+   Both clauses are load-bearing. It is **not approved** (so do not hold it up as
+   the standard) and it is **not worthless** (so do not throw it away). The guides
+   now say: mine it for *mechanisms that demonstrably work*, and for the **data
+   format**, which the validators define — but treat its plot, length, idea
+   density and use of his biography as open questions.
+5. **Agents may ask him personal questions.** *"the personalizing or any other
+   agent can ask me personal questions before creating the chapter."* This is a
+   new capability, and it inverts the old rule. It used to be *"we do not know, so
+   do not guess"*; it is now **"we do not know, so ask."** Guessing stays
+   forbidden. This matters because the project already shipped the opposite: a
+   fabricated madrasa memory in the hero's own mouth, promoted into the notebook
+   as self-knowledge, passing every gate.
+
+**What it produced.**
+
+- **`CHAPTER-CREATION-GUIDE.md`** — rewritten as the operating manual. 17 sections:
+  the pipeline in one page, the seven stages (three of them research), the brief,
+  harvesting from four sources, distilling to a teaching payload, plotting,
+  interactions, the story object, NPCs and triggers, the learning object,
+  minigames, registration, the full checklist, the gate commands **and what each
+  gate cannot see**, common mistakes, a worked mini-example, working with
+  subagents, and where to look first.
+- **`PLOT-CREATION-GUIDE.md`** — new, and the centrepiece. The three questions
+  (want/need/cost), the six-line dramatic spine with a worked table, Kishōtenketsu
+  as an alternative to three-act, the chapter skeleton, choice design (foldback,
+  consequence without locks, gated choices, the **construct-validity test**,
+  delayed branching), information economy, tension without combat, dialogue
+  craft, endings, a 16-item readiness checklist, 10 anti-patterns, and
+  personalisation. **§0.1 now quotes his own rejection criteria verbatim** and
+  translates each line into an operational requirement.
+- **`PERSONALISATION-GUIDE.md`** — new. The verified dossier, the five levers, the
+  **"one fact, three treatments"** technique, hard rules, a 10-question
+  checklist, the brief template to fill in *before* plotting, and **§7: the
+  question queue to ask him**, 12 questions marked BLOCKING / SHAPE / FLAVOUR.
+- **`MINIGAME-DESIGN-GUIDE.md`** — new. The host contract with verified geometry,
+  six archetypes, the "is it a minigame?" four-part test, **the five ways to wire
+  intel into a game mechanically**, the win/lose contract, readability without
+  assets, build order, 10 anti-patterns.
+- **`NOTION-CHAPTER-MINING.md`** — new. Page-ID inventory, the six-step mining
+  procedure, the 5-column insight→beat filter with worked examples, the
+  AI-extraction trap, citation discipline.
+- **`AGENTS.md`** — three false claims corrected (see below), the new guides
+  registered in §15, and **two new standing constraints** (10: ask him; 11:
+  chapter 2 is a work in progress, not a template).
+
+**Verified corrections shipped into `AGENTS.md` — every one found by running the
+code, none by reading prose.**
+
+| claimed | actual |
+|---|---|
+| "Chapter 2 uses `requires.flag`" | chapter 2 has **zero** `requires` and **zero** `lockedText`. All 17 intel ids are write-only. Chapter 1 has the only three real gates. |
+| "`C2-001`…`C2-006`" | it ships **eight** principles; the validator allows **6–10** |
+| `validate-chapter2.js` counts `17 / 191 / 41 / 6` | actually `21 / 203 / 36 / 8` |
+
+**Why this matters more than the guides themselves.** Three separate factual
+claims about the only reference chapter sat in the project's orientation file and
+were repeated into the guides. A new author would have inherited every one of
+them. The rule now written into `AGENTS.md` §15: **`show-contract.js` and the
+validators beat every prose file, including `AGENTS.md`.**
+
+**Also found, and deliberately not fixed:** three real defects in
+`js/data/chapter2.js` — an invented madrasa memory in the hero's mouth (`:766`,
+promoted into `intel_madrasa`), the only Cyrillic in the file (`:1165`,
+`aytaсан`), and a dead `P.MUTUAL` reference that always falls through (`:1243`).
+Recorded in `PERSONALISATION-GUIDE.md` §8 rather than patched, because he told me
+not to work on chapter 2 yet. Fixing `P.MUTUAL` and `aytaсан` would have been
+zero-risk; I reverted both edits once he said to leave chapter 2 alone, and
+`js/data/chapter2.js` is byte-identical to `HEAD`. **The instruction was about the
+whole chapter, not just its plot.**
+
+**The mistake worth recording.** I spent the early part of this wave
+reverse-engineering chapter 2 — measuring its beats, its branching, its
+archetype bands, its defects — because that is what I had done in previous waves
+and the tests were green. He had to say twice that chapter 2 is not the target.
+The lesson is not "measure less". It is: **when the user rejects a thing and then
+asks you to build the system that will replace it, the thing is a source of parts,
+not a specification.** The guide set is the deliverable; the autopsy was
+scaffolding I mistook for the work.
+
+### Follow-up: `_guide-notes/minigame-design.md` had to be written by hand
+
+The minigame agent returned a 6 KB stub (§1 host contract + an empty §2 heading)
+after a full turn, and never recovered. Rather than re-dispatch a third time I
+wrote the file myself from the verified findings — archetypes, the "is it a
+minigame?" test, the five intel-wiring modes, the win/lose contract, readability,
+build order, anti-patterns. It is now `MINIGAME-DESIGN-GUIDE.md`, 400 lines.
+**Recorded because the delegation failed silently**: the agent reported nothing,
+the file existed, and only reading it end-to-end revealed it stopped at a stub.
+
+### Follow-up: an encoding bug that only a real check caught
+
+`_guide-notes/part-front.md` had 77 double-encoded characters — a middle dot, em dash, right arrow,
+î, and § each stored as two or three cp1252-misread bytes, re-saved as UTF-8. Two earlier
+`enc.js` runs had reported "problems: none" because that checker only looked for
+`\u00e2` patterns and the file had been re-saved through a Windows console
+codepage in between. The repair is now a tool (`_guide-notes/repair-encoding.js`):
+map chars back to cp1252 bytes and take the **shortest prefix that is valid
+UTF-8**, because each damaged run is exactly one intended character. Longest-
+prefix decoding swallowed the rest of the line.
+
+**The durable lesson:** "the checker says clean" is not evidence unless the
+checker was written to catch the specific defect. This project has now had that
+lesson twice — a probe that passed for months without calling `map.build()`, and
+an encoding check that passed on a file that was visibly broken.
+
 ## 2026-10-22, ≈07:00 (Tashkent) — the wave: Coolify documented, and three ways it can silently not serve
 
 > explain in "C:\Users\bluep\(1d) game\AGENTS.md" that - the project's Coolify
