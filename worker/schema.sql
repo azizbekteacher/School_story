@@ -1,8 +1,13 @@
 -- School_story — account + cloud-save schema for Cloudflare D1 (SQLite).
 --
--- Apply with:
---   npx wrangler d1 execute school-story-db --file=worker/schema.sql --remote
--- (from the repository root; add --local to exercise the local dev database).
+-- Run these from the worker/ directory, where wrangler.toml lives (Wrangler
+-- resolves its config from the current directory):
+--   cd worker
+--   npx wrangler d1 execute school-story-db --file=schema.sql --remote
+-- Use --local instead of --remote to exercise the local dev database.
+-- From the repository root the same command needs an explicit config:
+--   npx wrangler d1 execute school-story-db --file=worker/schema.sql --remote \
+--     -c worker/wrangler.toml
 --
 -- The whole file is idempotent (IF NOT EXISTS), so re-running it is safe.
 --

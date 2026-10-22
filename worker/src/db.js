@@ -67,9 +67,14 @@ export async function upsertUser(db, profile) {
 }
 
 export async function deleteUser(db, userId) {
-  /* Schema declares ON DELETE CASCADE, but D1 does not enforce foreign keys
-   * unless `PRAGMA foreign_keys = ON` is set per connection. Delete explicitly
-   * so account deletion cannot leave saves or sessions behind. */
+  /* The schema declares ON DELETE CASCADE, and D1 does enforce foreign keys by
+   * default (equivalent to `PRAGMA foreign_keys = on`), so deleting the user row
+   * alone would normally suffice. We still delete the children explicitly:
+   *   - account deletion must not depend on a connection-level pragma or on a
+   *     future schema edit dropping the REFERENCES clause;
+   *   - it keeps the behaviour identical on any SQLite that has FKs off, which
+   *     is what makes the test stub and a local file behave the same way.
+   * Order matters: children first, so it is also valid without cascade. */
   await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(userId).run();
   await db.prepare("DELETE FROM saves WHERE user_id = ?").bind(userId).run();
   await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();

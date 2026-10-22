@@ -764,6 +764,34 @@ async function dbTests() {
       assertEqual(await getSessionWithUser(db, "h1"), null, "session deleted");
     });
 
+    await test(`the schema's ON DELETE CASCADE really is enforced${suffix}`, async () => {
+      /* deleteUser deletes children explicitly, so the test above passes even if
+       * the schema's cascade is broken. This one deletes only the parent row and
+       * asserts the children go — proving the REFERENCES ... ON DELETE CASCADE
+       * in schema.sql is live, which is what the README tells the operator to
+       * rely on. Skipped for the hand stub: it is not a SQL engine. */
+      if (environment.label !== "node:sqlite + schema.sql") return "n/a for hand stub";
+      const db = await environment.make();
+      await upsertUser(db, { id: "casc", email: "", name: "", picture: "", updatedAt: "2026-01-01T00:00:00.000Z" });
+      await db
+        .prepare("INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
+        .bind("casc-h", "casc", "2099-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z")
+        .run();
+      await putSave(db, "casc", "{}", "2026-01-01T00:00:00.000Z");
+
+      await db.prepare("DELETE FROM users WHERE id = ?").bind("casc").run();
+
+      assertEqual(await getSave(db, "casc"), null, "save cascaded away");
+      assertEqual(await getSessionWithUser(db, "casc-h"), null, "session cascaded away");
+      const orphanSessions = await db
+        .prepare("SELECT count(*) AS n FROM sessions WHERE user_id = ?")
+        .bind("casc")
+        .first();
+      assertEqual(orphanSessions.n, 0, "no orphan session rows");
+      const orphanSaves = await db.prepare("SELECT count(*) AS n FROM saves WHERE user_id = ?").bind("casc").first();
+      assertEqual(orphanSaves.n, 0, "no orphan save rows");
+    });
+
     await test(`the schema is idempotent (re-applying it does not throw)${suffix}`, async () => {
       if (environment.label !== "node:sqlite + schema.sql") return "n/a for hand stub";
       const sqlite2 = await loadNodeSqlite();
@@ -809,7 +837,7 @@ async function apiTests() {
 
   /* One shared fake JWKS fetch for the whole API group. */
   const cache = createJwksCache({ fetchImpl: async () => jwksResponse(jwks) });
-  setJwksCacheForTests(cache);
+  setSharedJwksCache(cache);
 
   function freshEnv() {
     return makeEnv({ GOOGLE_CLIENT_ID: clientId });
@@ -1254,7 +1282,7 @@ async function httpEdgeTests() {
   });
 
   await test("the module-scope JWKS cache is a singleton (survives across requests)", () => {
-    const cache = getJwksCache();
+    const cache = getSharedJwksCache();
     assert(cache && typeof cache.getKeys === "function", "cache available");
   });
 }
